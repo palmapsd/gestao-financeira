@@ -1,14 +1,14 @@
 /* 
  * Página Gerenciar Projetos - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 21:01
+ * @version 1.1.0
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Edit, Trash2, Check, X, FolderOpen, AlertCircle } from 'lucide-react';
 import { useStore } from '../store';
-import { Project } from '../types';
+import type { Project } from '../types';
 import {
     PageHeader,
     Card,

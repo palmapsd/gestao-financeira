@@ -1,22 +1,22 @@
 /* 
  * Context/Store do Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 20:50
+ * @version 1.1.0
  */
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
-import {
+import { createContext, useContext, useReducer, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type {
     Client, Project, Production, Period, StoreData,
-    ProductionFormData, Status, ValidationResult
+    ProductionFormData, Status
 } from '../types';
 import {
     calculatePeriod, calculateTotal, validateProductionForm,
     generateId, getTodayISO, isToday, logger
 } from '../utils';
+import { APP_VERSION } from '../config';
 
-// Versão atual do sistema
-const STORE_VERSION = '1.0.0';
 const STORAGE_KEY = 'palma_psd_data';
 
 // Estado inicial
@@ -25,7 +25,7 @@ const initialState: StoreData = {
     projects: [],
     productions: [],
     periods: [],
-    version: STORE_VERSION
+    version: APP_VERSION
 };
 
 // Tipos de ações
@@ -49,7 +49,7 @@ type Action =
 function storeReducer(state: StoreData, action: Action): StoreData {
     switch (action.type) {
         case 'LOAD_DATA':
-            return { ...action.payload, version: STORE_VERSION };
+            return { ...action.payload, version: APP_VERSION };
 
         case 'ADD_CLIENT':
             return { ...state, clients: [...state.clients, action.payload] };
@@ -169,6 +169,7 @@ interface StoreContextType {
 
     // Períodos
     getOpenPeriodsByClient: (clienteId: string) => Period[];
+    getAllPeriodsByClient: (clienteId: string) => Period[];
     getProductionsByPeriod: (periodId: string) => Production[];
     closePeriod: (periodId: string) => { success: boolean; error?: string };
 
@@ -485,6 +486,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return state.periods.filter(p => p.cliente_id === clienteId && p.status === 'Aberto');
     };
 
+    const getAllPeriodsByClient = (clienteId: string): Period[] => {
+        return state.periods
+            .filter(p => p.cliente_id === clienteId)
+            .sort((a, b) => new Date(b.data_inicio).getTime() - new Date(a.data_inicio).getTime());
+    };
+
     const getProductionsByPeriod = (periodId: string): Production[] => {
         return state.productions.filter(p => p.periodo_id === periodId);
     };
@@ -526,6 +533,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         duplicateProduction,
         canEditProduction,
         getOpenPeriodsByClient,
+        getAllPeriodsByClient,
         getProductionsByPeriod,
         closePeriod,
         getClientById,

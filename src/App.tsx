@@ -1,17 +1,17 @@
 /* 
  * App Principal - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 20:50
+ * @version 1.1.0
  */
 
-import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { StoreProvider } from './store';
 import { Layout } from './components/Layout';
 import {
   Dashboard,
   NovaProducao,
+  EditarProducao,
   Producoes,
   Fechamento,
   Clientes,
@@ -26,6 +26,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/nova-producao" element={<NovaProducao />} />
+            <Route path="/editar-producao/:id" element={<EditarProducao />} />
             <Route path="/producoes" element={<Producoes />} />
             <Route path="/fechamento" element={<Fechamento />} />
             <Route path="/clientes" element={<Clientes />} />

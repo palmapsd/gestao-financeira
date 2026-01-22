@@ -1,16 +1,16 @@
 /* 
  * Página Fechamento (Tela 3) - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 21:00
+ * @version 1.1.0
  */
 
-import React, { useState, useMemo } from 'react';
-import { Download, Lock, AlertTriangle, CheckCircle, FileSpreadsheet } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Download, Lock, AlertTriangle, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useStore } from '../store';
-import { Period, ProductionType } from '../types';
+import type { Period } from '../types';
 import { formatCurrency, formatDate, groupByType, PRODUCTION_TYPES } from '../utils';
 import {
     PageHeader,
@@ -27,7 +27,7 @@ export function Fechamento() {
     const {
         state,
         getActiveClients,
-        getOpenPeriodsByClient,
+        getAllPeriodsByClient,
         getProductionsByPeriod,
         closePeriod,
         getClientById
@@ -40,7 +40,7 @@ export function Fechamento() {
     const [loading, setLoading] = useState(false);
 
     const clients = getActiveClients();
-    const openPeriods = selectedClientId ? getOpenPeriodsByClient(selectedClientId) : [];
+    const allPeriods = selectedClientId ? getAllPeriodsByClient(selectedClientId) : [];
 
     // Período selecionado
     const selectedPeriod: Period | undefined = useMemo(() => {
@@ -76,10 +76,12 @@ export function Fechamento() {
         }));
 
         // Resumo
-        const resumo = PRODUCTION_TYPES.map(tipo => ({
-            'Tipo': tipo,
-            'Total': totaisPorTipo[tipo]
-        })).filter(r => r.Total > 0);
+        const resumo: { Tipo: string; Total: number }[] = PRODUCTION_TYPES
+            .map(tipo => ({
+                'Tipo': tipo as string,
+                'Total': totaisPorTipo[tipo]
+            }))
+            .filter(r => r.Total > 0);
 
         resumo.push({ 'Tipo': 'TOTAL GERAL', 'Total': selectedPeriod.total_periodo });
 
@@ -160,12 +162,12 @@ export function Fechamento() {
                         label="Período"
                         value={selectedPeriodId}
                         onChange={(e) => setSelectedPeriodId(e.target.value)}
-                        options={openPeriods.map(p => ({
+                        options={allPeriods.map(p => ({
                             value: p.id,
-                            label: `${p.nome_periodo} - ${formatCurrency(p.total_periodo)}`
+                            label: `${p.nome_periodo} - ${formatCurrency(p.total_periodo)} [${p.status}]`
                         }))}
-                        placeholder={selectedClientId ? (openPeriods.length > 0 ? "Selecione um período" : "Nenhum período aberto") : "Selecione um cliente primeiro"}
-                        disabled={!selectedClientId || openPeriods.length === 0}
+                        placeholder={selectedClientId ? (allPeriods.length > 0 ? "Selecione um período" : "Nenhum período encontrado") : "Selecione um cliente primeiro"}
+                        disabled={!selectedClientId || allPeriods.length === 0}
                     />
                 </div>
             </Card>
@@ -266,14 +268,16 @@ export function Fechamento() {
                                 Exportar Excel
                             </Button>
 
-                            <Button
-                                variant="danger"
-                                icon={<Lock className="w-4 h-4" />}
-                                onClick={() => setCloseModal(true)}
-                                disabled={periodProductions.length === 0}
-                            >
-                                Fechar Período
-                            </Button>
+                            {selectedPeriod?.status === 'Aberto' && (
+                                <Button
+                                    variant="danger"
+                                    icon={<Lock className="w-4 h-4" />}
+                                    onClick={() => setCloseModal(true)}
+                                    disabled={periodProductions.length === 0}
+                                >
+                                    Fechar Período
+                                </Button>
+                            )}
                         </div>
                     </Card>
                 </>

@@ -1,11 +1,13 @@
 /* 
  * Funções utilitárias do Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 20:52
+ * @version 1.1.0
  */
 
-import { PeriodCalculation, ValidationResult, ProductionFormData, ProductionType } from '../types';
+import type { PeriodCalculation, ValidationResult, ProductionFormData, ProductionType } from '../types';
+export { Logger, logger } from './logger';
+export type { LogEntry, LogLevel } from './logger';
 
 // Lista de tipos de produção válidos
 export const PRODUCTION_TYPES: ProductionType[] = ['Feed', 'Story', 'Reels', 'Vídeo', 'Logo', 'Outro'];
@@ -151,19 +153,3 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
     };
 }
 
-// Logger para debug (só em desenvolvimento)
-export const logger = {
-    info: (message: string, data?: unknown) => {
-        if (import.meta.env.DEV) {
-            console.log(`[INFO] ${new Date().toISOString()} - ${message}`, data || '');
-        }
-    },
-    error: (message: string, error?: unknown) => {
-        console.error(`[ERROR] ${new Date().toISOString()} - ${message}`, error || '');
-    },
-    warn: (message: string, data?: unknown) => {
-        if (import.meta.env.DEV) {
-            console.warn(`[WARN] ${new Date().toISOString()} - ${message}`, data || '');
-        }
-    }
-};

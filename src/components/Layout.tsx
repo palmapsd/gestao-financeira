@@ -1,12 +1,14 @@
 /* 
  * Componente de Layout/Sidebar - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 20:51
+ * @version 1.1.0
  */
 
-import React, { useState, ReactNode } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
+import { APP_VERSION, AUTHOR } from '../config';
 import {
     LayoutDashboard,
     PlusCircle,
@@ -18,6 +20,7 @@ import {
     X,
     Palette
 } from 'lucide-react';
+import { SkipLink } from './ui';
 
 interface LayoutProps {
     children: ReactNode;
@@ -62,6 +65,8 @@ export function Layout({ children }: LayoutProps) {
 
     return (
         <div className="min-h-screen">
+            <SkipLink />
+            
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
                 <div className="flex items-center justify-between p-4">
@@ -140,14 +145,14 @@ export function Layout({ children }: LayoutProps) {
                             Desenvolvido por
                         </p>
                         <a
-                            href="https://starmannweb.com.br"
+                            href={AUTHOR.site}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
                         >
-                            Starmannweb
+                            {AUTHOR.name}
                         </a>
-                        <p className="text-xs text-slate-600 mt-1">v1.0.0</p>
+                        <p className="text-xs text-slate-600 mt-1">v{APP_VERSION}</p>
                     </div>
                 </div>
             </aside>

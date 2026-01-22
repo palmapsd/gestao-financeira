@@ -1,10 +1,10 @@
 {
   "name": "palma-psd",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sistema Interno de Controle de Produção - Palma.PSD",
   "author": {
-    "name": "Starmannweb",
+    "name": "Ricieri de Moraes",
     "url": "https://starmannweb.com.br"
   },
   "license": "UNLICENSED",
@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",

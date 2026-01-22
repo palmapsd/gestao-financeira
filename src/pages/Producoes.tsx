@@ -1,11 +1,11 @@
 /* 
  * Página Lista de Produções (Tela 2) - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 21:01
+ * @version 1.1.0
  */
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus,
@@ -19,7 +19,7 @@ import {
     AlertCircle
 } from 'lucide-react';
 import { useStore } from '../store';
-import { ProductionFilters, Production } from '../types';
+import type { ProductionFilters, Production } from '../types';
 import { PRODUCTION_TYPES, formatCurrency, formatDate } from '../utils';
 import {
     PageHeader,
@@ -35,14 +35,12 @@ import {
 export function Producoes() {
     const {
         state,
-        getActiveClients,
         getProjectsByClient,
         canEditProduction,
         deleteProduction,
         duplicateProduction,
         getClientById,
-        getProjectById,
-        getPeriodById
+        getProjectById
     } = useStore();
 
     // Filtros
@@ -58,7 +56,6 @@ export function Producoes() {
     const [deleteModal, setDeleteModal] = useState<Production | null>(null);
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    const clients = getActiveClients();
     const allClients = state.clients;
     const projects = filters.cliente_id ? getProjectsByClient(filters.cliente_id) : [];
     const periods = state.periods;

@@ -1,11 +1,11 @@
 /* 
  * Componentes UI Reutilizáveis - Sistema Palma.PSD
- * @author Starmannweb (https://starmannweb.com.br)
- * @date 2026-01-21 19:30
- * @version 1.0.0
+ * @author Ricieri de Moraes (https://starmannweb.com.br)
+ * @date 2026-01-21 20:53
+ * @version 1.1.0
  */
 
-import React, { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { X, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react';
 
 // === INPUT ===
@@ -262,7 +262,11 @@ interface BadgeProps {
 
 export function StatusBadge({ status }: BadgeProps) {
     return (
-        <span className={`badge ${status === 'Aberto' ? 'badge-open' : 'badge-closed'}`}>
+        <span 
+            className={`badge ${status === 'Aberto' ? 'badge-open' : 'badge-closed'}`}
+            role="status"
+            aria-label={`Status: ${status}`}
+        >
             {status}
         </span>
     );
@@ -314,11 +318,32 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
         <header className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-white">{title}</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-white" id="page-title">{title}</h1>
                     {subtitle && <p className="text-slate-400 mt-1">{subtitle}</p>}
                 </div>
                 {actions && <div className="flex gap-3">{actions}</div>}
             </div>
         </header>
     );
+}
+
+// === SKIP LINK (Acessibilidade) ===
+export function SkipLink() {
+    return (
+        <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary-500 focus:text-white focus:rounded-lg focus:outline-none"
+        >
+            Pular para o conteúdo principal
+        </a>
+    );
+}
+
+// === VISUALLY HIDDEN (Acessibilidade) ===
+interface VisuallyHiddenProps {
+    children: ReactNode;
+}
+
+export function VisuallyHidden({ children }: VisuallyHiddenProps) {
+    return <span className="sr-only">{children}</span>;
 }
