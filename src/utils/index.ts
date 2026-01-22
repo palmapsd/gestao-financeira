@@ -123,18 +123,19 @@ export function generateId(): string {
 }
 
 // Agrupa produções por tipo
-export function groupByType(productions: { tipo: ProductionType; total: number }[]): Record<ProductionType, number> {
-    const groups: Record<ProductionType, number> = {
-        'Feed': 0,
-        'Story': 0,
-        'Reels': 0,
-        'Vídeo': 0,
-        'Logo': 0,
-        'Outro': 0
+export function groupByType(productions: { tipo: ProductionType; total: number; quantidade: number }[]): Record<ProductionType, { quantidade: number; total: number }> {
+    const groups: Record<ProductionType, { quantidade: number; total: number }> = {
+        'Feed': { quantidade: 0, total: 0 },
+        'Story': { quantidade: 0, total: 0 },
+        'Reels': { quantidade: 0, total: 0 },
+        'Vídeo': { quantidade: 0, total: 0 },
+        'Logo': { quantidade: 0, total: 0 },
+        'Outro': { quantidade: 0, total: 0 }
     };
 
     productions.forEach(p => {
-        groups[p.tipo] += p.total;
+        groups[p.tipo].total += p.total;
+        groups[p.tipo].quantidade += p.quantidade;
     });
 
     return groups;

@@ -94,7 +94,7 @@ export function exportPeriodToPDF({ period, productions, clientName }: ExportPDF
 
     // ===== RESUMO POR TIPO =====
     const totaisPorTipo = groupByType(productions);
-    const tiposComValor = PRODUCTION_TYPES.filter(tipo => totaisPorTipo[tipo] > 0);
+    const tiposComValor = PRODUCTION_TYPES.filter(tipo => totaisPorTipo[tipo].total > 0);
 
     if (tiposComValor.length > 0) {
         doc.setTextColor(...textDark);
@@ -106,9 +106,13 @@ export function exportPeriodToPDF({ period, productions, clientName }: ExportPDF
 
         autoTable(doc, {
             startY: yPosition,
-            head: [['Tipo', 'Total']],
-            body: tiposComValor.map(tipo => [tipo, formatCurrency(totaisPorTipo[tipo])]),
-            foot: [['TOTAL GERAL', formatCurrency(period.total_periodo)]],
+            head: [['Tipo', 'Qtd', 'Total']],
+            body: tiposComValor.map(tipo => [
+                tipo,
+                totaisPorTipo[tipo].quantidade.toString(),
+                formatCurrency(totaisPorTipo[tipo].total)
+            ]),
+            foot: [['TOTAL GERAL', productions.length.toString(), formatCurrency(period.total_periodo)]],
             theme: 'striped',
             headStyles: {
                 fillColor: primaryColor,
