@@ -2,7 +2,7 @@
  * Página Lista de Produções (Tela 2) - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
  * @date 2026-01-22 11:30
- * @version 1.3.0
+ * @version 1.4.0
  */
 
 import { useState, useMemo } from 'react';
@@ -14,8 +14,6 @@ import {
     Trash2,
     Edit,
     FileText,
-    ChevronDown,
-    ChevronUp,
     AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -55,7 +53,6 @@ export function Producoes() {
         status: ''
     });
 
-    const [showFilters, setShowFilters] = useState(false);
     const [deleteModal, setDeleteModal] = useState<Production | null>(null);
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -139,77 +136,62 @@ export function Producoes() {
 
             {/* Filtros */}
             <Card className="mb-6">
-                <button
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center justify-between w-full text-left"
-                    aria-expanded={showFilters}
-                >
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-5 h-5 text-slate-400" />
-                        <span className="font-medium">Filtros</span>
-                    </div>
-                    {showFilters ? (
-                        <ChevronUp className="w-5 h-5 text-slate-400" />
-                    ) : (
-                        <ChevronDown className="w-5 h-5 text-slate-400" />
-                    )}
-                </button>
+                <div className="flex items-center gap-2 mb-4">
+                    <Filter className="w-5 h-5 text-primary-400" />
+                    <span className="font-semibold text-white">Filtros</span>
+                </div>
 
-                {showFilters && (
-                    <div className="mt-4 pt-4 border-t border-white/10 animate-slide-up">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                            <Select
-                                label="Cliente"
-                                value={filters.cliente_id}
-                                onChange={(e) => setFilters(prev => ({ ...prev, cliente_id: e.target.value, projeto_id: '' }))}
-                                options={allClients.map(c => ({ value: c.id, label: c.nome }))}
-                                placeholder="Todos"
-                            />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    <Select
+                        label="Cliente"
+                        value={filters.cliente_id}
+                        onChange={(e) => setFilters(prev => ({ ...prev, cliente_id: e.target.value, projeto_id: '' }))}
+                        options={allClients.map(c => ({ value: c.id, label: c.nome }))}
+                        placeholder="Todos"
+                    />
 
-                            <Select
-                                label="Projeto"
-                                value={filters.projeto_id}
-                                onChange={(e) => setFilters(prev => ({ ...prev, projeto_id: e.target.value }))}
-                                options={projects.map(p => ({ value: p.id, label: p.nome }))}
-                                placeholder="Todos"
-                                disabled={!filters.cliente_id}
-                            />
+                    <Select
+                        label="Projeto"
+                        value={filters.projeto_id}
+                        onChange={(e) => setFilters(prev => ({ ...prev, projeto_id: e.target.value }))}
+                        options={projects.map(p => ({ value: p.id, label: p.nome }))}
+                        placeholder="Todos"
+                        disabled={!filters.cliente_id}
+                    />
 
-                            <Select
-                                label="Tipo"
-                                value={filters.tipo}
-                                onChange={(e) => setFilters(prev => ({ ...prev, tipo: e.target.value as typeof filters.tipo }))}
-                                options={PRODUCTION_TYPES.map(t => ({ value: t, label: t }))}
-                                placeholder="Todos"
-                            />
+                    <Select
+                        label="Tipo"
+                        value={filters.tipo}
+                        onChange={(e) => setFilters(prev => ({ ...prev, tipo: e.target.value as typeof filters.tipo }))}
+                        options={PRODUCTION_TYPES.map(t => ({ value: t, label: t }))}
+                        placeholder="Todos"
+                    />
 
-                            <Select
-                                label="Período"
-                                value={filters.periodo_id}
-                                onChange={(e) => setFilters(prev => ({ ...prev, periodo_id: e.target.value }))}
-                                options={periods.map(p => ({ value: p.id, label: p.nome_periodo }))}
-                                placeholder="Todos"
-                            />
+                    <Select
+                        label="Período"
+                        value={filters.periodo_id}
+                        onChange={(e) => setFilters(prev => ({ ...prev, periodo_id: e.target.value }))}
+                        options={periods.map(p => ({ value: p.id, label: p.nome_periodo }))}
+                        placeholder="Todos"
+                    />
 
-                            <Select
-                                label="Status"
-                                value={filters.status}
-                                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as typeof filters.status }))}
-                                options={[
-                                    { value: 'Aberto', label: 'Aberto' },
-                                    { value: 'Fechado', label: 'Fechado' }
-                                ]}
-                                placeholder="Todos"
-                            />
-                        </div>
+                    <Select
+                        label="Status"
+                        value={filters.status}
+                        onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value as typeof filters.status }))}
+                        options={[
+                            { value: 'Aberto', label: 'Aberto' },
+                            { value: 'Fechado', label: 'Fechado' }
+                        ]}
+                        placeholder="Todos"
+                    />
+                </div>
 
-                        <div className="flex justify-end mt-4">
-                            <Button variant="secondary" onClick={clearFilters}>
-                                Limpar Filtros
-                            </Button>
-                        </div>
-                    </div>
-                )}
+                <div className="flex justify-end mt-4">
+                    <Button variant="secondary" onClick={clearFilters}>
+                        Limpar Filtros
+                    </Button>
+                </div>
             </Card>
 
             {/* Tabela */}
