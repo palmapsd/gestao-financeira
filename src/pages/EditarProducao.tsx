@@ -5,11 +5,11 @@
  * @version 1.1.0
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useStore } from '../store';
-import { ProductionFormData, ProductionType } from '../types';
+import type { ProductionFormData, ProductionType } from '../types';
 import { PRODUCTION_TYPES, formatCurrency, calculatePeriod } from '../utils';
 import {
     Card,
@@ -31,7 +31,6 @@ export function EditarProducao() {
         getProjectsByClient, 
         updateProduction,
         canEditProduction,
-        getClientById,
         getPeriodById
     } = useStore();
 
@@ -150,7 +149,8 @@ export function EditarProducao() {
     }
 
     if (blocked) {
-        const period = production ? getPeriodById(production.periodo_id) : null;
+        const _period = production ? getPeriodById(production.periodo_id) : null;
+        void _period;
         
         return (
             <div className="animate-fade-in max-w-3xl mx-auto">
