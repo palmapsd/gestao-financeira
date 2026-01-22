@@ -7,8 +7,9 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Save, ArrowLeft, AlertTriangle, Shield } from 'lucide-react';
 import { useStore } from '../store';
+import { useAuth } from '../context/AuthContext';
 import type { ProductionFormData, ProductionType } from '../types';
 import { PRODUCTION_TYPES, formatCurrency, calculatePeriod } from '../utils';
 import {
@@ -25,6 +26,7 @@ import {
 export function EditarProducao() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
+    const { isAdmin } = useAuth();
     const {
         state,
         getActiveClients,
@@ -116,6 +118,25 @@ export function EditarProducao() {
 
         setLoading(false);
     };
+
+    if (!isAdmin) {
+        return (
+            <div className="animate-fade-in max-w-3xl mx-auto">
+                <Card>
+                    <EmptyState
+                        icon={<Shield className="w-16 h-16 text-red-500" />}
+                        title="Acesso Negado"
+                        description="Você não tem permissão para editar produções."
+                        action={
+                            <Button variant="secondary" onClick={() => navigate('/producoes')}>
+                                Voltar para Produções
+                            </Button>
+                        }
+                    />
+                </Card>
+            </div>
+        );
+    }
 
     if (notFound) {
         return (

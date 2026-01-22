@@ -7,8 +7,9 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, Plus, ArrowLeft } from 'lucide-react';
+import { Save, Plus, ArrowLeft, Shield } from 'lucide-react';
 import { useStore } from '../store';
+import { useAuth } from '../context/AuthContext';
 import type { ProductionFormData, ProductionType } from '../types';
 import { PRODUCTION_TYPES, formatCurrency, getTodayISO, calculatePeriod } from '../utils';
 import {
@@ -18,7 +19,8 @@ import {
     Select,
     Textarea,
     Button,
-    Alert
+    Alert,
+    EmptyState
 } from '../components/ui';
 
 // Estado inicial do formulário
@@ -36,6 +38,7 @@ const getInitialFormData = (): ProductionFormData => ({
 export function NovaProducao() {
     const navigate = useNavigate();
     const { getActiveClients, getProjectsByClient, addProduction } = useStore();
+    const { isAdmin } = useAuth();
 
     const [formData, setFormData] = useState<ProductionFormData>(getInitialFormData());
     const [errors, setErrors] = useState<string[]>([]);
@@ -97,6 +100,25 @@ export function NovaProducao() {
 
         setLoading(false);
     };
+
+    if (!isAdmin) {
+        return (
+            <div className="animate-fade-in max-w-3xl mx-auto">
+                <Card>
+                    <EmptyState
+                        icon={<Shield className="w-16 h-16 text-red-500" />}
+                        title="Acesso Negado"
+                        description="Você não tem permissão para lançar produções."
+                        action={
+                            <Button variant="secondary" onClick={() => navigate('/producoes')}>
+                                Voltar para Produções
+                            </Button>
+                        }
+                    />
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-fade-in max-w-3xl mx-auto">

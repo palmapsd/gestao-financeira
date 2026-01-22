@@ -18,6 +18,7 @@ import {
     ChevronUp,
     AlertCircle
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { useStore } from '../store';
 import type { ProductionFilters, Production } from '../types';
 import { PRODUCTION_TYPES, formatCurrency, formatDate } from '../utils';
@@ -42,6 +43,8 @@ export function Producoes() {
         getClientById,
         getProjectById
     } = useStore();
+
+    const { isAdmin } = useAuth();
 
     // Filtros
     const [filters, setFilters] = useState<ProductionFilters>({
@@ -113,11 +116,13 @@ export function Producoes() {
                 title="Produções"
                 subtitle={`${filteredProductions.length} produção(ões) encontrada(s)`}
                 actions={
-                    <Link to="/nova-producao">
-                        <Button icon={<Plus className="w-4 h-4" />}>
-                            Nova Produção
-                        </Button>
-                    </Link>
+                    isAdmin ? (
+                        <Link to="/nova-producao">
+                            <Button icon={<Plus className="w-4 h-4" />}>
+                                Nova Produção
+                            </Button>
+                        </Link>
+                    ) : undefined
                 }
             />
 
@@ -215,11 +220,13 @@ export function Producoes() {
                         title="Nenhuma produção encontrada"
                         description="Ainda não há produções registradas ou os filtros não retornaram resultados."
                         action={
-                            <Link to="/nova-producao">
-                                <Button icon={<Plus className="w-4 h-4" />}>
-                                    Lançar Produção
-                                </Button>
-                            </Link>
+                            isAdmin ? (
+                                <Link to="/nova-producao">
+                                    <Button icon={<Plus className="w-4 h-4" />}>
+                                        Lançar Produção
+                                    </Button>
+                                </Link>
+                            ) : undefined
                         }
                     />
                 </Card>
@@ -270,7 +277,7 @@ export function Producoes() {
                                             </td>
                                             <td>
                                                 <div className="flex items-center gap-1">
-                                                    {canEdit && prod.status === 'Aberto' && (
+                                                    {isAdmin && canEdit && prod.status === 'Aberto' && (
                                                         <>
                                                             <Link
                                                                 to={`/editar-producao/${prod.id}`}
@@ -289,7 +296,7 @@ export function Producoes() {
                                                         </>
                                                     )}
 
-                                                    {prod.status === 'Aberto' && (
+                                                    {isAdmin && prod.status === 'Aberto' && (
                                                         <button
                                                             onClick={() => handleDuplicate(prod)}
                                                             className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
