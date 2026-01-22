@@ -10,10 +10,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-// Converte username para email fictício para o Supabase Auth
-const usernameToEmail = (username: string): string => {
-    return `${username.toLowerCase().trim()}@palmapsd.local`;
-};
+
 
 export function Login() {
     const navigate = useNavigate();
@@ -40,8 +37,22 @@ export function Login() {
         setLoading(true);
 
         // Converte username para email
-        const email = usernameToEmail(username);
-        const result = await login(email, password);
+        // Tenta login com o novo domínio
+        const domain = 'sistema.palmapsd.com';
+        const email = `${username.toLowerCase().trim()}@${domain}`;
+        let result = await login(email, password);
+
+        // Se falhar, tenta com o domínio antigo (legacy support)
+        if (!result.success) {
+            const legacyDomain = 'palmapsd.local';
+            const legacyEmail = `${username.toLowerCase().trim()}@${legacyDomain}`;
+            console.log('Tentando login com domínio antigo...');
+            const legacyResult = await login(legacyEmail, password);
+
+            if (legacyResult.success) {
+                result = legacyResult;
+            }
+        }
 
         if (result.success) {
             const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';

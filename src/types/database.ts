@@ -172,12 +172,29 @@ export interface Database {
                     updated_at?: string
                 }
             }
+            profile_clients: {
+                Row: {
+                    profile_id: string
+                    client_id: string
+                    created_at: string
+                }
+                Insert: {
+                    profile_id: string
+                    client_id: string
+                    created_at?: string
+                }
+                Update: {
+                    profile_id?: string
+                    client_id?: string
+                    created_at?: string
+                }
+            }
         }
     }
 }
 
 // Tipos convenientes
-export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Profile = Database['public']['Tables']['profiles']['Row'] & { clientes_vinculados?: Client[] };
 export type Client = Database['public']['Tables']['clients']['Row'];
 export type Project = Database['public']['Tables']['projects']['Row'];
 export type Period = Database['public']['Tables']['periods']['Row'];

@@ -40,7 +40,7 @@ export function Usuarios() {
     const [newPassword, setNewPassword] = useState('');
     const [newNome, setNewNome] = useState('');
     const [newRole, setNewRole] = useState<'admin' | 'viewer'>('viewer');
-    const [newClienteId, setNewClienteId] = useState('');
+    const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
     const [addLoading, setAddLoading] = useState(false);
 
     // Carrega usuários
@@ -71,8 +71,8 @@ export function Usuarios() {
             return;
         }
 
-        if (newRole === 'viewer' && !newClienteId) {
-            setAlert({ type: 'error', message: 'Selecione um cliente para o visualizador' });
+        if (newRole === 'viewer' && selectedClientIds.length === 0) {
+            setAlert({ type: 'error', message: 'Selecione pelo menos um cliente para o visualizador' });
             return;
         }
 
@@ -83,16 +83,27 @@ export function Usuarios() {
 
         setAddLoading(true);
         // Converte username para email fake
-        const email = `${newEmail.toLowerCase().trim().replace(/\s+/g, '')}@palmapsd.local`;
+        const domain = 'sistema.palmapsd.com';
+        const email = `${newEmail.toLowerCase().trim().replace(/\s+/g, '')}@${domain}`;
 
-        const result = await signUp(email, newPassword, newNome, newRole, newClienteId);
+        // Para compatibilidade, passamos o primeiro cliente como principal no metadata, se houver
+        const mainClientId = selectedClientIds[0] || '';
+
+        const result = await signUp(email, newPassword, newNome, newRole, mainClientId);
 
         if (result.success) {
-            // Se tiver cliente_id e user id, força update no profile
-            if (result.user && newClienteId) {
-                // Aguarda um pouco para o trigger criar o profile
-                await new Promise(r => setTimeout(r, 1000));
-                await supabase.from('profiles').update({ cliente_id: newClienteId }).eq('id', result.user.id);
+            // Se tiver user id, vincula os clientes na tabela N:N
+            if (result.user && selectedClientIds.length > 0) {
+                // Instancia promessas de inserção
+                const inserts = selectedClientIds.map(clientId =>
+                    supabase.from('profile_clients').insert({
+                        profile_id: result.user!.id,
+                        client_id: clientId
+                    })
+                );
+
+                // Executa inserts (ignora erros individuais por enquanto, mas seria bom tratar)
+                await Promise.all(inserts);
             }
 
             setAlert({ type: 'success', message: 'Usuário criado com sucesso!' });
@@ -101,7 +112,7 @@ export function Usuarios() {
             setNewPassword('');
             setNewNome('');
             setNewRole('viewer');
-            setNewClienteId('');
+            setSelectedClientIds([]);
 
             setTimeout(() => loadUsers(), 1000);
         } else {
@@ -238,7 +249,7 @@ export function Usuarios() {
                                                     Visualizador
                                                     {user.cliente_id && (
                                                         <span className="ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
-                                                            {clients.find(c => c.id === user.cliente_id)?.nome || 'Cliente Desconhecido'}
+                                                            {clients.find(c => c.id === user.cliente_id)?.nome || 'Multi'}
                                                         </span>
                                                     )}
                                                 </>
@@ -318,13 +329,35 @@ export function Usuarios() {
                         ]}
                     />
                     {newRole === 'viewer' && (
-                        <Select
-                            label="Cliente Vinculado"
-                            value={newClienteId}
-                            onChange={(e) => setNewClienteId(e.target.value)}
-                            options={clients.map(c => ({ value: c.id, label: c.nome }))}
-                            placeholder="Selecione o cliente"
-                        />
+                        <div className="space-y-2">
+                            <label className="input-label">Clientes Vinculados</label>
+                            <div className="max-h-40 overflow-y-auto custom-scrollbar p-2 border border-slate-700 rounded-lg bg-slate-900/50">
+                                {clients.length === 0 ? (
+                                    <p className="text-sm text-slate-500 p-2">Nenhum cliente cadastrado</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {clients.map(client => (
+                                            <label key={client.id} className="flex items-center gap-3 p-2 hover:bg-slate-800 rounded cursor-pointer transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-primary-500 focus:ring-primary-500/50"
+                                                    checked={selectedClientIds.includes(client.id)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedClientIds([...selectedClientIds, client.id]);
+                                                        } else {
+                                                            setSelectedClientIds(selectedClientIds.filter(id => id !== client.id));
+                                                        }
+                                                    }}
+                                                />
+                                                <span className="text-sm text-slate-300">{client.nome}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <p className="text-xs text-slate-500">Selecione quais clientes este usuário poderá acessar.</p>
+                        </div>
                     )}
                 </div>
             </Modal>
