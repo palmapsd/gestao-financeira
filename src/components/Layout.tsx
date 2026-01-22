@@ -1,14 +1,15 @@
 /* 
  * Componente de Layout/Sidebar - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 20:51
- * @version 1.1.0
+ * @date 2026-01-22 09:10
+ * @version 1.2.0
  */
 
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { APP_VERSION, AUTHOR } from '../config';
+import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
     PlusCircle,
@@ -18,7 +19,10 @@ import {
     FolderOpen,
     Menu,
     X,
-    Palette
+    Palette,
+    LogOut,
+    UserCog,
+    Shield
 } from 'lucide-react';
 import { SkipLink } from './ui';
 
@@ -62,11 +66,18 @@ const navLinks = [
 
 export function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { authState, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
             <SkipLink />
-            
+
             {/* Mobile Header */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-50 glass border-b border-white/10">
                 <div className="flex items-center justify-between p-4">
@@ -121,6 +132,30 @@ export function Layout({ children }: LayoutProps) {
                     </div>
                 </div>
 
+                {/* User Info */}
+                {authState.user && (
+                    <div className="p-4 border-b border-white/10">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                <span className="text-white font-semibold">
+                                    {authState.user.nome.charAt(0).toUpperCase()}
+                                </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">
+                                    {authState.user.nome}
+                                </p>
+                                <p className="text-xs text-slate-400 flex items-center gap-1">
+                                    {authState.user.role === 'admin' && (
+                                        <Shield className="w-3 h-3 text-purple-400" />
+                                    )}
+                                    {authState.user.role === 'admin' ? 'Administrador' : 'Usuário'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Navegação */}
                 <nav className="flex-1 py-4" aria-label="Menu principal">
                     {navLinks.map(link => (
@@ -136,7 +171,32 @@ export function Layout({ children }: LayoutProps) {
                             <span>{link.label}</span>
                         </NavLink>
                     ))}
+
+                    {/* Link de Usuários (só para admin) */}
+                    {authState.user?.role === 'admin' && (
+                        <NavLink
+                            to="/usuarios"
+                            className={({ isActive }) =>
+                                `sidebar-link ${isActive ? 'active' : ''}`
+                            }
+                            onClick={() => setSidebarOpen(false)}
+                        >
+                            <UserCog className="w-5 h-5" aria-hidden="true" />
+                            <span>Usuários</span>
+                        </NavLink>
+                    )}
                 </nav>
+
+                {/* Logout Button */}
+                <div className="p-4 border-t border-white/10">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        <span>Sair</span>
+                    </button>
+                </div>
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/10">

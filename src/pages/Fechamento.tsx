@@ -6,12 +6,13 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Download, Lock, AlertTriangle, FileSpreadsheet } from 'lucide-react';
+import { Download, Lock, AlertTriangle, FileSpreadsheet, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useStore } from '../store';
 import type { Period } from '../types';
 import { formatCurrency, formatDate, groupByType, PRODUCTION_TYPES } from '../utils';
+import { exportPeriodToPDF } from '../utils/pdfExport';
 import {
     PageHeader,
     Card,
@@ -103,7 +104,7 @@ export function Fechamento() {
         const fileName = `${clientName.replace(/\s+/g, '_')}_${selectedPeriod.nome_periodo.replace(/\//g, '-').replace(/\s+/g, '')}.xlsx`;
         saveAs(blob, fileName);
 
-        setAlert({ type: 'success', message: 'Relatório exportado com sucesso!' });
+        setAlert({ type: 'success', message: 'Relatório Excel exportado com sucesso!' });
     };
 
     // Fechar período
@@ -266,6 +267,25 @@ export function Fechamento() {
                                 disabled={periodProductions.length === 0}
                             >
                                 Exportar Excel
+                            </Button>
+
+                            <Button
+                                variant="secondary"
+                                icon={<FileText className="w-4 h-4" />}
+                                onClick={() => {
+                                    if (selectedPeriod && periodProductions.length > 0) {
+                                        const clientName = getClientById(selectedClientId)?.nome || 'Cliente';
+                                        exportPeriodToPDF({
+                                            period: selectedPeriod,
+                                            productions: periodProductions,
+                                            clientName
+                                        });
+                                        setAlert({ type: 'success', message: 'Relatório PDF exportado com sucesso!' });
+                                    }
+                                }}
+                                disabled={periodProductions.length === 0}
+                            >
+                                Exportar PDF
                             </Button>
 
                             {selectedPeriod?.status === 'Aberto' && (
