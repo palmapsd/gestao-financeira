@@ -12,11 +12,20 @@ import type { Client, Project, Production, Period } from '../types/database';
 import type { ProductionFormData } from '../types';
 import { calculatePeriod, calculateTotal, validateProductionForm } from '../utils';
 
+interface ProductionType {
+    id: string;
+    nome: string;
+    ativo: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 interface StoreData {
     clients: Client[];
     projects: Project[];
     productions: Production[];
     periods: Period[];
+    productionTypes: ProductionType[];
     loading: boolean;
     error: string | null;
 }
@@ -54,6 +63,7 @@ interface StoreContextType {
     getClientById: (id: string) => Client | undefined;
     getProjectById: (id: string) => Project | undefined;
     getPeriodById: (id: string) => Period | undefined;
+    getActiveProductionTypes: () => ProductionType[];
 }
 
 const StoreContext = createContext<StoreContextType | null>(null);
@@ -64,6 +74,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         projects: [],
         productions: [],
         periods: [],
+        productionTypes: [],
         loading: true,
         error: null
     });
@@ -73,23 +84,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setState(prev => ({ ...prev, loading: true, error: null }));
 
         try {
-            const [clientsRes, projectsRes, periodsRes, productionsRes] = await Promise.all([
+            const [clientsRes, projectsRes, periodsRes, productionsRes, typesRes] = await Promise.all([
                 supabase.from('clients').select('*').order('nome'),
                 supabase.from('projects').select('*').order('nome'),
                 supabase.from('periods').select('*').order('data_inicio', { ascending: false }),
-                supabase.from('productions').select('*').order('data', { ascending: false })
+                supabase.from('productions').select('*').order('data', { ascending: false }),
+                supabase.from('production_types').select('*').order('nome')
             ]);
 
             if (clientsRes.error) throw clientsRes.error;
             if (projectsRes.error) throw projectsRes.error;
             if (periodsRes.error) throw periodsRes.error;
             if (productionsRes.error) throw productionsRes.error;
+            if (typesRes.error) throw typesRes.error;
 
             setState({
                 clients: clientsRes.data || [],
                 projects: projectsRes.data || [],
                 periods: periodsRes.data || [],
                 productions: productionsRes.data || [],
+                productionTypes: typesRes.data || [],
                 loading: false,
                 error: null
             });
@@ -521,6 +535,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getClientById = (id: string) => state.clients.find(c => c.id === id);
     const getProjectById = (id: string) => state.projects.find(p => p.id === id);
     const getPeriodById = (id: string) => state.periods.find(p => p.id === id);
+    const getActiveProductionTypes = () => state.productionTypes.filter(t => t.ativo);
 
     return (
         <StoreContext.Provider value={{
@@ -545,7 +560,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             closePeriod,
             getClientById,
             getProjectById,
-            getPeriodById
+            getPeriodById,
+            getActiveProductionTypes
         }}>
             {children}
         </StoreContext.Provider>

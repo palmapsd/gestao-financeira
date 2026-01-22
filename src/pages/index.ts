@@ -14,3 +14,5 @@ export { Clientes } from './Clientes';
 export { Projetos } from './Projetos';
 export { Login } from './Login';
 export { Usuarios } from './Usuarios';
+export { TiposProducao } from './TiposProducao';
+

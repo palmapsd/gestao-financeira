@@ -19,7 +19,8 @@ import {
   Clientes,
   Projetos,
   Login,
-  Usuarios
+  Usuarios,
+  TiposProducao
 } from './pages';
 
 function App() {
@@ -70,6 +71,11 @@ function App() {
             <Route path="/usuarios" element={
               <ProtectedRoute requiredRole="admin">
                 <Layout><Usuarios /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/tipos-producao" element={
+              <ProtectedRoute requiredRole="admin">
+                <Layout><TiposProducao /></Layout>
               </ProtectedRoute>
             } />
           </Routes>

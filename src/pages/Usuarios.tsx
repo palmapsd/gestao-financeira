@@ -24,9 +24,11 @@ import {
     EmptyState,
     LoadingSpinner
 } from '../components/ui';
+import { useStore } from '../store';
 
 export function Usuarios() {
     const { signUp, isAdmin } = useAuth();
+    const { state: { clients }, refreshData } = useStore();
 
     const [users, setUsers] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,10 +36,11 @@ export function Usuarios() {
 
     // Form de novo usuário
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newEmail, setNewEmail] = useState('');
+    const [newEmail, setNewEmail] = useState(''); // Agora usado para Username
     const [newPassword, setNewPassword] = useState('');
     const [newNome, setNewNome] = useState('');
     const [newRole, setNewRole] = useState<'admin' | 'viewer'>('viewer');
+    const [newClienteId, setNewClienteId] = useState('');
     const [addLoading, setAddLoading] = useState(false);
 
     // Carrega usuários
@@ -58,12 +61,18 @@ export function Usuarios() {
 
     useEffect(() => {
         loadUsers();
+        refreshData(); // Garante que clientes estão carregados
     }, []);
 
     // Adicionar usuário
     const handleAdd = async () => {
         if (!newEmail || !newPassword || !newNome) {
-            setAlert({ type: 'error', message: 'Preencha todos os campos' });
+            setAlert({ type: 'error', message: 'Preencha todos os campos obrigatórios' });
+            return;
+        }
+
+        if (newRole === 'viewer' && !newClienteId) {
+            setAlert({ type: 'error', message: 'Selecione um cliente para o visualizador' });
             return;
         }
 
@@ -73,19 +82,37 @@ export function Usuarios() {
         }
 
         setAddLoading(true);
-        const result = await signUp(newEmail, newPassword, newNome, newRole);
+        // Converte username para email fake
+        const email = `${newEmail.toLowerCase().trim().replace(/\s+/g, '')}@palmapsd.local`;
+
+        const result = await signUp(email, newPassword, newNome, newRole, newClienteId);
 
         if (result.success) {
-            setAlert({ type: 'success', message: 'Usuário criado! Verifique o e-mail para confirmação.' });
+            // Se tiver cliente_id e user id, força update no profile
+            if (result.user && newClienteId) {
+                // Aguarda um pouco para o trigger criar o profile
+                await new Promise(r => setTimeout(r, 1000));
+                await supabase.from('profiles').update({ cliente_id: newClienteId }).eq('id', result.user.id);
+            }
+
+            setAlert({ type: 'success', message: 'Usuário criado com sucesso!' });
             setShowAddModal(false);
             setNewEmail('');
             setNewPassword('');
             setNewNome('');
             setNewRole('viewer');
-            // Recarrega após um tempo para dar tempo do trigger criar o profile
-            setTimeout(() => loadUsers(), 2000);
+            setNewClienteId('');
+
+            setTimeout(() => loadUsers(), 1000);
         } else {
-            setAlert({ type: 'error', message: result.error || 'Erro ao criar usuário' });
+            if (result.error?.includes('rate limit')) {
+                setAlert({
+                    type: 'error',
+                    message: 'Limite de criação excedido. Por favor, desabilite "Confirm Email" no Supabase Auth -> Providers -> Email.'
+                });
+            } else {
+                setAlert({ type: 'error', message: result.error || 'Erro ao criar usuário' });
+            }
         }
         setAddLoading(false);
     };
@@ -198,19 +225,26 @@ export function Usuarios() {
                                 </div>
                                 <div>
                                     <p className="font-medium">{user.nome}</p>
-                                    <p className="text-xs text-slate-400 flex items-center gap-1">
-                                        {user.role === 'admin' ? (
-                                            <>
-                                                <Shield className="w-3 h-3 text-purple-400" />
-                                                Administrador
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Eye className="w-3 h-3 text-blue-400" />
-                                                Visualizador
-                                            </>
-                                        )}
-                                    </p>
+                                    <div className="flex flex-col gap-1">
+                                        <p className="text-xs text-slate-400 flex items-center gap-1">
+                                            {user.role === 'admin' ? (
+                                                <>
+                                                    <Shield className="w-3 h-3 text-purple-400" />
+                                                    Administrador
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Eye className="w-3 h-3 text-blue-400" />
+                                                    Visualizador
+                                                    {user.cliente_id && (
+                                                        <span className="ml-1 px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">
+                                                            {clients.find(c => c.id === user.cliente_id)?.nome || 'Cliente Desconhecido'}
+                                                        </span>
+                                                    )}
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -262,9 +296,8 @@ export function Usuarios() {
                         onChange={(e) => setNewNome(e.target.value)}
                     />
                     <Input
-                        label="E-mail"
-                        type="email"
-                        placeholder="email@exemplo.com"
+                        label="Usuário (Username)"
+                        placeholder="ex: clienteabc"
                         value={newEmail}
                         onChange={(e) => setNewEmail(e.target.value)}
                     />
@@ -284,6 +317,15 @@ export function Usuarios() {
                             { value: 'admin', label: 'Administrador (acesso total)' }
                         ]}
                     />
+                    {newRole === 'viewer' && (
+                        <Select
+                            label="Cliente Vinculado"
+                            value={newClienteId}
+                            onChange={(e) => setNewClienteId(e.target.value)}
+                            options={clients.map(c => ({ value: c.id, label: c.nome }))}
+                            placeholder="Selecione o cliente"
+                        />
+                    )}
                 </div>
             </Modal>
         </div>

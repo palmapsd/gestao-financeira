@@ -1,8 +1,8 @@
 /* 
  * Página de Login - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 11:00
- * @version 1.3.0
+ * @date 2026-01-22 12:10
+ * @version 1.4.0
  */
 
 import { useState, useEffect } from 'react';
@@ -10,12 +10,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+// Converte username para email fictício para o Supabase Auth
+const usernameToEmail = (username: string): string => {
+    return `${username.toLowerCase().trim()}@palmapsd.local`;
+};
+
 export function Login() {
     const navigate = useNavigate();
     const location = useLocation();
     const { login, authState } = useAuth();
 
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
@@ -34,13 +39,15 @@ export function Login() {
         setError('');
         setLoading(true);
 
+        // Converte username para email
+        const email = usernameToEmail(username);
         const result = await login(email, password);
 
         if (result.success) {
             const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
             navigate(from, { replace: true });
         } else {
-            setError(result.error || 'Erro ao fazer login');
+            setError(result.error || 'Usuário ou senha inválidos');
         }
 
         setLoading(false);
@@ -88,18 +95,18 @@ export function Login() {
                             </div>
                         )}
 
-                        {/* Email */}
+                        {/* Username */}
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
-                                E-mail
+                                Usuário
                             </label>
                             <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="Digite seu e-mail"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                placeholder="Digite seu usuário"
                                 className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                                autoComplete="email"
+                                autoComplete="username"
                                 autoFocus
                             />
                         </div>
@@ -135,7 +142,7 @@ export function Login() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={loading || !email || !password}
+                            disabled={loading || !username || !password}
                             className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold flex items-center justify-center gap-2 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                         >
                             {loading ? (

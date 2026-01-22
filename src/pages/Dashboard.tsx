@@ -151,9 +151,60 @@ export function Dashboard() {
                 </div>
             </Card>
 
-            {/* Resumo */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Total Geral */}
+            {/* Dashboard Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <Card title="Distribuição por Tipo de Produção (Mês Atual)">
+                    <div className="space-y-6">
+                        {/* Gráfico de Barras CSS */}
+                        <div className="h-8 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                            {state.productionTypes.map((type, index) => {
+                                const typeTotal = state.productions
+                                    .filter(p => p.tipo === type.nome)
+                                    .reduce((sum, p) => sum + p.total, 0);
+
+                                const totalValue = state.productions.reduce((sum, p) => sum + p.total, 0);
+                                const percent = totalValue > 0 ? (typeTotal / totalValue) * 100 : 0;
+
+                                if (percent <= 0) return null;
+
+                                const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-cyan-500'];
+                                const color = colors[index % colors.length];
+
+                                return (
+                                    <div
+                                        key={type.id}
+                                        style={{ width: `${percent}%` }}
+                                        className={`${color} hover:opacity-80 transition-opacity relative group`}
+                                        title={`${type.nome}: ${formatCurrency(typeTotal)} (${percent.toFixed(1)}%)`}
+                                    ></div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Legenda */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-2 gap-x-4">
+                            {state.productionTypes.map((type, index) => {
+                                const typeTotal = state.productions
+                                    .filter(p => p.tipo === type.nome)
+                                    .reduce((sum, p) => sum + p.total, 0);
+
+                                if (typeTotal === 0) return null;
+
+                                const colors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-green-500', 'bg-yellow-500', 'bg-red-500', 'bg-cyan-500'];
+                                const color = colors[index % colors.length];
+
+                                return (
+                                    <div key={type.id} className="flex items-center gap-2 text-sm">
+                                        <div className={`w-3 h-3 rounded-full ${color}`}></div>
+                                        <span className="text-slate-300">{type.nome}</span>
+                                        <span className="text-slate-500 ml-auto">{formatCurrency(typeTotal)}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </Card>
+
                 <Card title="Resumo Financeiro">
                     <div className="space-y-4">
                         <div className="flex justify-between items-center py-3 border-b border-white/10">
@@ -170,46 +221,46 @@ export function Dashboard() {
                         </div>
                     </div>
                 </Card>
-
-                {/* Últimas Produções */}
-                <Card title="Últimas Produções">
-                    {state.productions.length === 0 ? (
-                        <div className="text-center py-8 text-slate-500">
-                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p>Nenhuma produção registrada</p>
-                            <Link
-                                to="/nova-producao"
-                                className="text-primary-400 hover:text-primary-300 text-sm mt-2 inline-block"
-                            >
-                                Lançar primeira produção →
-                            </Link>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {state.productions
-                                .slice()
-                                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                                .slice(0, 5)
-                                .map(prod => {
-                                    const client = state.clients.find(c => c.id === prod.cliente_id);
-                                    return (
-                                        <div
-                                            key={prod.id}
-                                            className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50"
-                                        >
-                                            <div>
-                                                <p className="font-medium text-sm">{prod.nome_producao}</p>
-                                                <p className="text-xs text-slate-500">{client?.nome || 'Cliente'} • {prod.tipo}</p>
-                                            </div>
-                                            <span className="font-semibold text-green-400">{formatCurrency(prod.total)}</span>
-                                        </div>
-                                    );
-                                })
-                            }
-                        </div>
-                    )}
-                </Card>
             </div>
+
+            {/* Últimas Produções */}
+            <Card title="Últimas Produções">
+                {state.productions.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Nenhuma produção registrada</p>
+                        <Link
+                            to="/nova-producao"
+                            className="text-primary-400 hover:text-primary-300 text-sm mt-2 inline-block"
+                        >
+                            Lançar primeira produção →
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {state.productions
+                            .slice()
+                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                            .slice(0, 5)
+                            .map(prod => {
+                                const client = state.clients.find(c => c.id === prod.cliente_id);
+                                return (
+                                    <div
+                                        key={prod.id}
+                                        className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-sm">{prod.nome_producao}</p>
+                                            <p className="text-xs text-slate-500">{client?.nome || 'Cliente'} • {prod.tipo}</p>
+                                        </div>
+                                        <span className="font-semibold text-green-400">{formatCurrency(prod.total)}</span>
+                                    </div>
+                                );
+                            })
+                        }
+                    </div>
+                )}
+            </Card>
         </div>
     );
 }

@@ -21,7 +21,7 @@ export interface AuthContextType {
     authState: AuthState;
     login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
-    signUp: (email: string, password: string, nome: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+    signUp: (email: string, password: string, nome: string, role?: UserRole, cliente_id?: string) => Promise<{ success: boolean; error?: string; user?: SupabaseUser | null }>;
     isAdmin: boolean;
     isViewer: boolean;
 }
@@ -135,16 +135,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: string,
         password: string,
         nome: string,
-        role: UserRole = 'viewer'
-    ): Promise<{ success: boolean; error?: string }> => {
+        role: UserRole = 'viewer',
+        cliente_id?: string
+    ): Promise<{ success: boolean; error?: string; user?: SupabaseUser | null }> => {
         try {
-            const { error } = await supabase.auth.signUp({
+            const { data, error } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
                         nome,
-                        role
+                        role,
+                        cliente_id // Passa cliente_id nos metadados (para trigger ou uso futuro)
                     }
                 }
             });
@@ -154,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 return { success: false, error: error.message };
             }
 
-            return { success: true };
+            return { success: true, user: data.user };
         } catch (error) {
             logSupabaseError('signUp catch', error);
             return { success: false, error: 'Erro ao criar conta' };

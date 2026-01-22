@@ -22,6 +22,7 @@ export interface Database {
                 Row: {
                     id: string
                     nome: string
+                    cliente_id: string | null
                     role: UserRole
                     ativo: boolean
                     created_at: string
@@ -30,6 +31,7 @@ export interface Database {
                 Insert: {
                     id: string
                     nome: string
+                    cliente_id?: string | null
                     role?: UserRole
                     ativo?: boolean
                     created_at?: string
@@ -38,6 +40,7 @@ export interface Database {
                 Update: {
                     id?: string
                     nome?: string
+                    cliente_id?: string | null
                     role?: UserRole
                     ativo?: boolean
                     updated_at?: string

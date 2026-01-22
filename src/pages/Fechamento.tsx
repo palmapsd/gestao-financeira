@@ -275,8 +275,13 @@ export function Fechamento() {
                                 onClick={() => {
                                     if (selectedPeriod && periodProductions.length > 0) {
                                         const clientName = getClientById(selectedClientId)?.nome || 'Cliente';
+
+                                        // Recalcula total para garantir (caso o banco não tenha atualizado ainda)
+                                        const realTotal = periodProductions.reduce((acc, curr) => acc + curr.total, 0);
+                                        const periodWithTotal = { ...selectedPeriod, total_periodo: realTotal };
+
                                         exportPeriodToPDF({
-                                            period: selectedPeriod,
+                                            period: periodWithTotal,
                                             productions: periodProductions,
                                             clientName
                                         });

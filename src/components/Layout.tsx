@@ -23,7 +23,8 @@ import {
     LogOut,
     UserCog,
     Shield,
-    Eye
+    Eye,
+    Tag
 } from 'lucide-react';
 import { SkipLink } from './ui';
 
@@ -43,6 +44,7 @@ const adminNavLinks = [
     { path: '/nova-producao', label: 'Lançar Produção', icon: PlusCircle, adminOnly: true },
     { path: '/clientes', label: 'Clientes', icon: Users, adminOnly: true },
     { path: '/projetos', label: 'Projetos', icon: FolderOpen, adminOnly: true },
+    { path: '/tipos-producao', label: 'Tipos de Produção', icon: Tag, adminOnly: true },
 ];
 
 export function Layout({ children }: LayoutProps) {
@@ -100,11 +102,13 @@ export function Layout({ children }: LayoutProps) {
                 <div className="p-6 border-b border-white/10">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
-                                <Palette className="w-5 h-5 text-white" />
-                            </div>
+                            <img
+                                src="https://i.postimg.cc/CxSDFgtp/palmapsd-transp.png"
+                                alt="Palma.PSD"
+                                className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+                            />
                             <div>
-                                <h1 className="font-bold text-white text-lg">Palma.PSD</h1>
+                                <h1 className="font-bold text-white text-lg leading-tight">Palma.PSD</h1>
                                 <span className="text-xs text-slate-500">Controle de Produção</span>
                             </div>
                         </div>
