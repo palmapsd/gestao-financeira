@@ -72,14 +72,17 @@ export function Login() {
 
             <div className="relative w-full max-w-md">
                 {/* Logo e título */}
-                <div className="text-center mb-8">
-                    <img
-                        src="https://i.postimg.cc/05SJDj1m/palmapsd-icon.jpg"
-                        alt="Palma.PSD"
-                        className="w-24 h-24 rounded-2xl shadow-lg shadow-blue-500/20 mb-4 object-cover"
-                    />
-                    <h1 className="text-3xl font-bold text-white mb-2">Palma.PSD</h1>
-                    <p className="text-slate-400">Sistema de Controle de Produção</p>
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <div className="relative group">
+                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-600/30 to-purple-600/30 rounded-full blur-2xl animate-pulse"></div>
+                        <img
+                            src="https://i.postimg.cc/05SJDj1m/palmapsd-icon.jpg"
+                            alt="Palma.PSD"
+                            className="relative w-32 h-32 rounded-3xl shadow-2xl shadow-blue-500/30 mb-6 object-cover border border-white/10 transform hover:scale-105 transition-transform duration-500"
+                        />
+                    </div>
+                    {/* <h1 className="text-3xl font-bold text-white mb-2">Palma.PSD</h1> - Removido */}
+                    <p className="text-slate-400 font-medium tracking-wide">Sistema de Controle de Produção</p>
                 </div>
 
                 {/* Card de Login */}

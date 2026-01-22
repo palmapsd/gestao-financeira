@@ -101,16 +101,16 @@ export function Layout({ children }: LayoutProps) {
                 {/* Logo */}
                 <div className="p-6 border-b border-white/10">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <img
-                                src="https://i.postimg.cc/CxSDFgtp/palmapsd-transp.png"
-                                alt="Palma.PSD"
-                                className="w-12 h-12 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"
-                            />
-                            <div>
-                                <h1 className="font-bold text-white text-lg leading-tight">Palma.PSD</h1>
-                                <span className="text-xs text-slate-500">Controle de Produção</span>
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="relative group">
+                                <div className="absolute -inset-2 bg-blue-500/20 rounded-full blur-xl group-hover:bg-blue-500/30 transition-all duration-500"></div>
+                                <img
+                                    src="https://i.postimg.cc/CxSDFgtp/palmapsd-transp.png"
+                                    alt="Palma.PSD"
+                                    className="relative w-32 h-auto object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] transform group-hover:scale-105 transition-transform duration-500"
+                                />
                             </div>
+                            <span className="text-xs font-bold text-slate-400 tracking-[0.2em] uppercase mt-2">Controle de Produção</span>
                         </div>
                         <button
                             onClick={() => setSidebarOpen(false)}
