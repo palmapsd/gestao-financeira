@@ -16,6 +16,7 @@ import {
     FileText
 } from 'lucide-react';
 import { useStore } from '../store';
+import { useAuth } from '../context/AuthContext';
 import { formatCurrency, getTodayISO, calculatePeriod } from '../utils';
 import { Card, PageHeader } from '../components/ui';
 
@@ -68,13 +69,16 @@ export function Dashboard() {
         },
     ];
 
+    const { isAdmin } = useAuth();
+
     const quickActions = [
         {
             label: 'Lançar Produção',
             description: 'Registrar nova produção',
             path: '/nova-producao',
             icon: PlusCircle,
-            color: 'bg-primary-500/20 text-primary-400 border-primary-500/30'
+            color: 'bg-primary-500/20 text-primary-400 border-primary-500/30',
+            adminOnly: true
         },
         {
             label: 'Ver Produções',
@@ -95,9 +99,10 @@ export function Dashboard() {
             description: 'Adicionar ou editar clientes',
             path: '/clientes',
             icon: Users,
-            color: 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+            color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+            adminOnly: true
         },
-    ];
+    ].filter(action => isAdmin || !action.adminOnly);
 
     return (
         <div className="animate-fade-in">

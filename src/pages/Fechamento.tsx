@@ -1,8 +1,8 @@
 /* 
  * Página Fechamento (Tela 3) - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 15:45
- * @version 1.2.1
+ * @date 2026-01-22 16:20
+ * @version 1.2.2
  */
 
 import { useState, useMemo, useEffect } from 'react';
@@ -46,30 +46,40 @@ export function Fechamento() {
 
     // Auto-seleção inicial
     useEffect(() => {
-        // Se só tem 1 cliente ou nenhum selecionado, seleciona o primeiro
         if (!selectedClientId && clients.length > 0) {
             setSelectedClientId(clients[0].id);
         }
     }, [clients.length, selectedClientId]);
 
     useEffect(() => {
-        // Se tem cliente mas sem período, tenta selecionar o atual ou o mais recente
         if (selectedClientId && !selectedPeriodId && allPeriods.length > 0) {
             const today = new Date();
             const currentMonth = today.getMonth() + 1;
             const currentYear = today.getFullYear();
 
-            // Tenta achar período correspondente ao mês atual
-            const currentPeriod = allPeriods.find(p => {
+            // PRIORIDADE: Período ABERTO do mês atual, ou qualquer período ABERTO mais recente
+
+            // 1. Tenta achar período do mês atual
+            const currentMonthPeriod = allPeriods.find(p => {
                 if (!p.data_inicio) return false;
                 const [year, month] = p.data_inicio.split('-').map(Number);
                 return month === currentMonth && year === currentYear;
             });
 
-            if (currentPeriod) {
-                setSelectedPeriodId(currentPeriod.id);
+            // 2. Tenta achar o período aberto mais recente
+            const latestOpenPeriod = allPeriods.find(p => p.status === 'Aberto');
+
+            if (currentMonthPeriod && currentMonthPeriod.status === 'Aberto') {
+                // Melhor caso: mês atual e aberto
+                setSelectedPeriodId(currentMonthPeriod.id);
+            } else if (latestOpenPeriod) {
+                // Segundo melhor: o mais recente aberto (pode ser mês passado)
+                setSelectedPeriodId(latestOpenPeriod.id);
+            } else if (currentMonthPeriod) {
+                // Terceiro: mês atual (mesmo fechado)
+                setSelectedPeriodId(currentMonthPeriod.id);
             } else {
-                // Se não achar o atual, pega o primeiro da lista (assumindo que getAllPeriods retorna ordenado por data desc)
+                // Último caso: o mais recente de todos
                 setSelectedPeriodId(allPeriods[0].id);
             }
         }
