@@ -114,7 +114,7 @@ export function Fechamento() {
         setLoading(true);
         await new Promise(r => setTimeout(r, 500));
 
-        const result = closePeriod(selectedPeriodId);
+        const result = await closePeriod(selectedPeriodId);
 
         if (result.success) {
             setAlert({ type: 'success', message: 'Período fechado com sucesso! Não será mais possível editar as produções.' });

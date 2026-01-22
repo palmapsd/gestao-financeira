@@ -1,8 +1,8 @@
 /* 
  * Componente de Layout/Sidebar - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 09:10
- * @version 1.2.0
+ * @date 2026-01-22 11:10
+ * @version 1.3.0
  */
 
 import { useState } from 'react';
@@ -22,7 +22,8 @@ import {
     Palette,
     LogOut,
     UserCog,
-    Shield
+    Shield,
+    Eye
 } from 'lucide-react';
 import { SkipLink } from './ui';
 
@@ -30,49 +31,34 @@ interface LayoutProps {
     children: ReactNode;
 }
 
-// Links de navegação
-const navLinks = [
-    {
-        path: '/',
-        label: 'Dashboard',
-        icon: LayoutDashboard
-    },
-    {
-        path: '/nova-producao',
-        label: 'Lançar Produção',
-        icon: PlusCircle
-    },
-    {
-        path: '/producoes',
-        label: 'Produções',
-        icon: List
-    },
-    {
-        path: '/fechamento',
-        label: 'Fechamento',
-        icon: Lock
-    },
-    {
-        path: '/clientes',
-        label: 'Clientes',
-        icon: Users
-    },
-    {
-        path: '/projetos',
-        label: 'Projetos',
-        icon: FolderOpen
-    },
+// Links de navegação base
+const baseNavLinks = [
+    { path: '/', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
+    { path: '/producoes', label: 'Produções', icon: List, adminOnly: false },
+    { path: '/fechamento', label: 'Fechamento', icon: Lock, adminOnly: false },
+];
+
+// Links que só admin vê
+const adminNavLinks = [
+    { path: '/nova-producao', label: 'Lançar Produção', icon: PlusCircle, adminOnly: true },
+    { path: '/clientes', label: 'Clientes', icon: Users, adminOnly: true },
+    { path: '/projetos', label: 'Projetos', icon: FolderOpen, adminOnly: true },
 ];
 
 export function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { authState, logout } = useAuth();
+    const { authState, logout, isAdmin } = useAuth();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         navigate('/login');
     };
+
+    // Monta lista de links baseado no role
+    const navLinks = isAdmin
+        ? [...baseNavLinks.slice(0, 1), ...adminNavLinks.slice(0, 1), ...baseNavLinks.slice(1), ...adminNavLinks.slice(1)]
+        : baseNavLinks;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100">
@@ -92,7 +78,7 @@ export function Layout({ children }: LayoutProps) {
                         <Palette className="w-6 h-6 text-primary-400" />
                         <span className="font-bold text-lg">Palma.PSD</span>
                     </div>
-                    <div className="w-10" /> {/* Espaçador */}
+                    <div className="w-10" />
                 </div>
             </header>
 
@@ -133,23 +119,30 @@ export function Layout({ children }: LayoutProps) {
                 </div>
 
                 {/* User Info */}
-                {authState.user && (
+                {authState.profile && (
                     <div className="p-4 border-b border-white/10">
                         <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                                 <span className="text-white font-semibold">
-                                    {authState.user.nome.charAt(0).toUpperCase()}
+                                    {authState.profile.nome.charAt(0).toUpperCase()}
                                 </span>
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-white truncate">
-                                    {authState.user.nome}
+                                    {authState.profile.nome}
                                 </p>
                                 <p className="text-xs text-slate-400 flex items-center gap-1">
-                                    {authState.user.role === 'admin' && (
-                                        <Shield className="w-3 h-3 text-purple-400" />
+                                    {isAdmin ? (
+                                        <>
+                                            <Shield className="w-3 h-3 text-purple-400" />
+                                            Administrador
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Eye className="w-3 h-3 text-blue-400" />
+                                            Visualizador
+                                        </>
                                     )}
-                                    {authState.user.role === 'admin' ? 'Administrador' : 'Usuário'}
                                 </p>
                             </div>
                         </div>
@@ -173,7 +166,7 @@ export function Layout({ children }: LayoutProps) {
                     ))}
 
                     {/* Link de Usuários (só para admin) */}
-                    {authState.user?.role === 'admin' && (
+                    {isAdmin && (
                         <NavLink
                             to="/usuarios"
                             className={({ isActive }) =>

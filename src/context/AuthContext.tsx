@@ -1,235 +1,178 @@
 /* 
- * Contexto de Autenticação - Sistema Palma.PSD
+ * Contexto de Autenticação com Supabase - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 09:10
- * @version 1.2.0
+ * @date 2026-01-22 11:00
+ * @version 1.3.0
  */
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { User, UserRole, AuthState, LoginCredentials, AuthContextType } from '../types/auth';
-import { generateId } from '../utils';
+import { supabase, logSupabaseError } from '../lib/supabase';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import type { Profile, UserRole } from '../types/database';
 
-const AUTH_STORAGE_KEY = 'palma_psd_auth';
-const USERS_STORAGE_KEY = 'palma_psd_users';
+export interface AuthState {
+    isAuthenticated: boolean;
+    user: SupabaseUser | null;
+    profile: Profile | null;
+    loading: boolean;
+}
 
-// Hash simples para senhas (apenas para demo - não use em produção real)
-const simpleHash = (str: string): string => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36);
-};
-
-// Usuário admin padrão
-const DEFAULT_ADMIN: User = {
-    id: 'admin-default-001',
-    username: 'admin',
-    password: simpleHash('admin123'),
-    nome: 'Administrador',
-    role: 'admin',
-    ativo: true,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-};
+export interface AuthContextType {
+    authState: AuthState;
+    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    logout: () => Promise<void>;
+    signUp: (email: string, password: string, nome: string, role?: UserRole) => Promise<{ success: boolean; error?: string }>;
+    isAdmin: boolean;
+    isViewer: boolean;
+}
 
 const initialAuthState: AuthState = {
     isAuthenticated: false,
     user: null,
-    token: null
+    profile: null,
+    loading: true
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [authState, setAuthState] = useState<AuthState>(initialAuthState);
-    const [users, setUsers] = useState<User[]>([]);
 
-    // Carrega usuários e estado de autenticação do localStorage
-    useEffect(() => {
-        // Carrega usuários
-        const savedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-        if (savedUsers) {
-            const parsed = JSON.parse(savedUsers) as User[];
-            // Garante que admin padrão existe
-            const hasAdmin = parsed.some(u => u.username === 'admin');
-            if (!hasAdmin) {
-                parsed.push(DEFAULT_ADMIN);
+    // Carrega perfil do usuário
+    const loadProfile = async (userId: string): Promise<Profile | null> => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (error) {
+                logSupabaseError('loadProfile', error);
+                return null;
             }
-            setUsers(parsed);
+
+            return data;
+        } catch (error) {
+            logSupabaseError('loadProfile catch', error);
+            return null;
+        }
+    };
+
+    // Atualiza estado baseado na sessão
+    const handleSession = async (session: Session | null) => {
+        if (session?.user) {
+            const profile = await loadProfile(session.user.id);
+            setAuthState({
+                isAuthenticated: true,
+                user: session.user,
+                profile,
+                loading: false
+            });
         } else {
-            setUsers([DEFAULT_ADMIN]);
+            setAuthState({
+                isAuthenticated: false,
+                user: null,
+                profile: null,
+                loading: false
+            });
         }
+    };
 
-        // Carrega autenticação
-        const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-        if (savedAuth) {
-            const parsed = JSON.parse(savedAuth) as AuthState;
-            if (parsed.isAuthenticated && parsed.user) {
-                setAuthState(parsed);
-            }
-        }
-    }, []);
-
-    // Salva usuários no localStorage
+    // Inicialização e listener de auth
     useEffect(() => {
-        if (users.length > 0) {
-            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-        }
-    }, [users]);
-
-    // Salva estado de autenticação
-    useEffect(() => {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState));
-    }, [authState]);
-
-    const login = (credentials: LoginCredentials): { success: boolean; error?: string } => {
-        const { username, password } = credentials;
-
-        if (!username.trim() || !password.trim()) {
-            return { success: false, error: 'Preencha todos os campos' };
-        }
-
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-
-        if (!user) {
-            return { success: false, error: 'Usuário não encontrado' };
-        }
-
-        if (!user.ativo) {
-            return { success: false, error: 'Usuário desativado' };
-        }
-
-        const hashedPassword = simpleHash(password);
-        if (user.password !== hashedPassword) {
-            return { success: false, error: 'Senha incorreta' };
-        }
-
-        // Login bem-sucedido
-        const token = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        setAuthState({
-            isAuthenticated: true,
-            user,
-            token
+        // Verifica sessão atual
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            handleSession(session);
         });
 
-        return { success: true };
+        // Listener de mudanças de auth
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            async (event, session) => {
+                console.log('[Auth Event]', event);
+                handleSession(session);
+            }
+        );
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // Login
+    const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                logSupabaseError('login', error);
+                return { success: false, error: error.message };
+            }
+
+            if (data.user) {
+                const profile = await loadProfile(data.user.id);
+                if (profile && !profile.ativo) {
+                    await supabase.auth.signOut();
+                    return { success: false, error: 'Usuário desativado' };
+                }
+            }
+
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('login catch', error);
+            return { success: false, error: 'Erro ao fazer login' };
+        }
     };
 
-    const logout = () => {
-        setAuthState(initialAuthState);
-        localStorage.removeItem(AUTH_STORAGE_KEY);
+    // Logout
+    const logout = async () => {
+        await supabase.auth.signOut();
     };
 
-    const addUser = (
-        username: string,
+    // Cadastro (apenas admin pode criar com role admin)
+    const signUp = async (
+        email: string,
         password: string,
         nome: string,
-        role: UserRole
-    ): { success: boolean; error?: string; user?: User } => {
-        if (!username.trim() || !password.trim() || !nome.trim()) {
-            return { success: false, error: 'Preencha todos os campos' };
+        role: UserRole = 'viewer'
+    ): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const { error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        nome,
+                        role
+                    }
+                }
+            });
+
+            if (error) {
+                logSupabaseError('signUp', error);
+                return { success: false, error: error.message };
+            }
+
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('signUp catch', error);
+            return { success: false, error: 'Erro ao criar conta' };
         }
-
-        if (password.length < 6) {
-            return { success: false, error: 'A senha deve ter no mínimo 6 caracteres' };
-        }
-
-        const exists = users.some(u => u.username.toLowerCase() === username.toLowerCase());
-        if (exists) {
-            return { success: false, error: 'Nome de usuário já existe' };
-        }
-
-        const now = new Date().toISOString();
-        const newUser: User = {
-            id: generateId(),
-            username: username.trim().toLowerCase(),
-            password: simpleHash(password),
-            nome: nome.trim(),
-            role,
-            ativo: true,
-            created_at: now,
-            updated_at: now
-        };
-
-        setUsers(prev => [...prev, newUser]);
-        return { success: true, user: newUser };
     };
 
-    const updateUser = (
-        id: string,
-        nome: string,
-        role: UserRole,
-        ativo: boolean,
-        newPassword?: string
-    ): { success: boolean; error?: string } => {
-        const userIndex = users.findIndex(u => u.id === id);
-        if (userIndex === -1) {
-            return { success: false, error: 'Usuário não encontrado' };
-        }
-
-        // Não permite desativar o próprio usuário admin logado
-        if (authState.user?.id === id && !ativo) {
-            return { success: false, error: 'Você não pode desativar seu próprio usuário' };
-        }
-
-        if (newPassword && newPassword.length < 6) {
-            return { success: false, error: 'A senha deve ter no mínimo 6 caracteres' };
-        }
-
-        const updated: User = {
-            ...users[userIndex],
-            nome: nome.trim(),
-            role,
-            ativo,
-            updated_at: new Date().toISOString()
-        };
-
-        if (newPassword) {
-            updated.password = simpleHash(newPassword);
-        }
-
-        setUsers(prev => prev.map(u => u.id === id ? updated : u));
-
-        // Atualiza o usuário logado se for o mesmo
-        if (authState.user?.id === id) {
-            setAuthState(prev => ({ ...prev, user: updated }));
-        }
-
-        return { success: true };
-    };
-
-    const deleteUser = (id: string): { success: boolean; error?: string } => {
-        const user = users.find(u => u.id === id);
-        if (!user) {
-            return { success: false, error: 'Usuário não encontrado' };
-        }
-
-        // Não permite excluir o próprio usuário
-        if (authState.user?.id === id) {
-            return { success: false, error: 'Você não pode excluir seu próprio usuário' };
-        }
-
-        // Não permite excluir o admin padrão
-        if (user.username === 'admin') {
-            return { success: false, error: 'O usuário admin padrão não pode ser excluído' };
-        }
-
-        setUsers(prev => prev.filter(u => u.id !== id));
-        return { success: true };
-    };
+    // Helpers
+    const isAdmin = authState.profile?.role === 'admin';
+    const isViewer = authState.profile?.role === 'viewer';
 
     return (
         <AuthContext.Provider value={{
             authState,
             login,
             logout,
-            users,
-            addUser,
-            updateUser,
-            deleteUser
+            signUp,
+            isAdmin,
+            isViewer
         }}>
             {children}
         </AuthContext.Provider>

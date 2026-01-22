@@ -1,13 +1,13 @@
 /* 
  * Página de Login - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 09:10
- * @version 1.2.0
+ * @date 2026-01-22 11:00
+ * @version 1.3.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { LogIn, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
@@ -15,28 +15,26 @@ export function Login() {
     const location = useLocation();
     const { login, authState } = useAuth();
 
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // Se já está logado, redireciona
-    if (authState.isAuthenticated) {
-        const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
-        navigate(from, { replace: true });
-        return null;
-    }
+    // Redireciona se já está logado
+    useEffect(() => {
+        if (authState.isAuthenticated && !authState.loading) {
+            const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+            navigate(from, { replace: true });
+        }
+    }, [authState.isAuthenticated, authState.loading, location, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
-        // Simula delay de rede
-        await new Promise(r => setTimeout(r, 500));
-
-        const result = login({ username, password });
+        const result = await login(email, password);
 
         if (result.success) {
             const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
@@ -47,6 +45,15 @@ export function Login() {
 
         setLoading(false);
     };
+
+    // Mostra loading enquanto verifica autenticação
+    if (authState.loading) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
@@ -81,18 +88,18 @@ export function Login() {
                             </div>
                         )}
 
-                        {/* Username */}
+                        {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-slate-300 mb-2">
-                                Usuário
+                                E-mail
                             </label>
                             <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Digite seu usuário"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="Digite seu e-mail"
                                 className="w-full px-4 py-3 rounded-xl bg-slate-900/50 border border-slate-600/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                                autoComplete="username"
+                                autoComplete="email"
                                 autoFocus
                             />
                         </div>
@@ -128,12 +135,12 @@ export function Login() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={loading || !username || !password}
+                            disabled={loading || !email || !password}
                             className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold flex items-center justify-center gap-2 hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/20"
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <Loader2 className="w-5 h-5 animate-spin" />
                                     Entrando...
                                 </>
                             ) : (
@@ -144,21 +151,6 @@ export function Login() {
                             )}
                         </button>
                     </form>
-
-                    {/* Credenciais padrão */}
-                    <div className="mt-6 p-4 rounded-xl bg-slate-700/30 border border-slate-600/30">
-                        <p className="text-xs text-slate-400 text-center mb-2">
-                            Credenciais padrão:
-                        </p>
-                        <div className="flex justify-center gap-4 text-sm">
-                            <span className="text-slate-300">
-                                Usuário: <code className="text-blue-400">admin</code>
-                            </span>
-                            <span className="text-slate-300">
-                                Senha: <code className="text-blue-400">admin123</code>
-                            </span>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Footer */}

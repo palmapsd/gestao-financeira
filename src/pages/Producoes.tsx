@@ -1,8 +1,8 @@
 /* 
  * Página Lista de Produções (Tela 2) - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 21:01
- * @version 1.1.0
+ * @date 2026-01-22 11:30
+ * @version 1.3.0
  */
 
 import { useState, useMemo } from 'react';
@@ -78,8 +78,8 @@ export function Producoes() {
     const totalFiltered = filteredProductions.reduce((sum, p) => sum + p.total, 0);
 
     // Handlers
-    const handleDelete = (prod: Production) => {
-        const result = deleteProduction(prod.id);
+    const handleDelete = async (prod: Production) => {
+        const result = await deleteProduction(prod.id);
         if (result.success) {
             setAlert({ type: 'success', message: 'Produção excluída com sucesso!' });
         } else {
@@ -88,8 +88,8 @@ export function Producoes() {
         setDeleteModal(null);
     };
 
-    const handleDuplicate = (prod: Production) => {
-        const result = duplicateProduction(prod.id);
+    const handleDuplicate = async (prod: Production) => {
+        const result = await duplicateProduction(prod.id);
         if (result.success) {
             setAlert({ type: 'success', message: 'Produção duplicada com sucesso!' });
         } else {

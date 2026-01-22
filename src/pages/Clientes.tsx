@@ -1,8 +1,8 @@
 /* 
  * Página Gerenciar Clientes - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 21:01
- * @version 1.1.0
+ * @date 2026-01-22 11:30
+ * @version 1.3.0
  */
 
 import { useState } from 'react';
@@ -29,15 +29,19 @@ export function Clientes() {
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     // Adicionar cliente
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!newName.trim()) {
             setAlert({ type: 'error', message: 'Digite o nome do cliente' });
             return;
         }
 
-        addClient(newName.trim());
-        setNewName('');
-        setAlert({ type: 'success', message: 'Cliente adicionado com sucesso!' });
+        const result = await addClient(newName.trim());
+        if (result.success) {
+            setNewName('');
+            setAlert({ type: 'success', message: 'Cliente adicionado com sucesso!' });
+        } else {
+            setAlert({ type: 'error', message: result.error || 'Erro ao adicionar' });
+        }
     };
 
     // Iniciar edição
@@ -47,27 +51,27 @@ export function Clientes() {
     };
 
     // Salvar edição
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (!editingClient || !editName.trim()) return;
 
-        updateClient(editingClient.id, editName.trim(), editingClient.ativo);
+        await updateClient(editingClient.id, editName.trim(), editingClient.ativo);
         setEditingClient(null);
         setEditName('');
         setAlert({ type: 'success', message: 'Cliente atualizado!' });
     };
 
     // Toggle ativo
-    const toggleActive = (client: Client) => {
-        updateClient(client.id, client.nome, !client.ativo);
+    const toggleActive = async (client: Client) => {
+        await updateClient(client.id, client.nome, !client.ativo);
     };
 
     // Deletar
-    const handleDelete = (client: Client) => {
-        const success = deleteClient(client.id);
-        if (success) {
+    const handleDelete = async (client: Client) => {
+        const result = await deleteClient(client.id);
+        if (result.success) {
             setAlert({ type: 'success', message: 'Cliente excluído!' });
         } else {
-            setAlert({ type: 'error', message: 'Não é possível excluir: cliente possui produções vinculadas' });
+            setAlert({ type: 'error', message: result.error || 'Não é possível excluir' });
         }
         setDeleteModal(null);
     };

@@ -25,10 +25,10 @@ import {
 export function EditarProducao() {
     const navigate = useNavigate();
     const { id } = useParams<{ id: string }>();
-    const { 
-        state, 
-        getActiveClients, 
-        getProjectsByClient, 
+    const {
+        state,
+        getActiveClients,
+        getProjectsByClient,
         updateProduction,
         canEditProduction,
         getPeriodById
@@ -66,7 +66,7 @@ export function EditarProducao() {
         }
 
         const prod = state.productions.find(p => p.id === id);
-        
+
         if (!prod) {
             setNotFound(true);
             return;
@@ -105,7 +105,7 @@ export function EditarProducao() {
 
         await new Promise(r => setTimeout(r, 300));
 
-        const result = updateProduction(id, formData);
+        const result = await updateProduction(id, formData);
 
         if (result.success) {
             setSuccess('Produção atualizada com sucesso!');
@@ -151,7 +151,7 @@ export function EditarProducao() {
     if (blocked) {
         const _period = production ? getPeriodById(production.periodo_id) : null;
         void _period;
-        
+
         return (
             <div className="animate-fade-in max-w-3xl mx-auto">
                 <PageHeader

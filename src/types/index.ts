@@ -48,7 +48,7 @@ export interface Production {
     id: string;
     data: string;        // ISO date string  
     cliente_id: string;
-    projeto_id?: string; // opcional
+    projeto_id?: string | null; // opcional
     tipo: ProductionType;
     nome_producao: string;
     quantidade: number;
@@ -56,7 +56,7 @@ export interface Production {
     total: number;       // calculado: quantidade * valor_unitario
     periodo_id: string;  // automático
     status: Status;
-    observacoes?: string;
+    observacoes?: string | null;
     created_at: string;
     updated_at: string;
 }

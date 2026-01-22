@@ -1,8 +1,8 @@
 /* 
  * Página Lançar Produção (Tela 1) - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 21:01
- * @version 1.1.0
+ * @date 2026-01-22 11:30
+ * @version 1.3.0
  */
 
 import { useState, useEffect } from 'react';
@@ -77,7 +77,7 @@ export function NovaProducao() {
         // Pequeno delay para feedback visual
         await new Promise(r => setTimeout(r, 300));
 
-        const result = addProduction(formData);
+        const result = await addProduction(formData);
 
         if (result.success) {
             if (addAnother) {

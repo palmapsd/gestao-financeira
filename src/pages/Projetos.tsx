@@ -1,8 +1,8 @@
 /* 
  * Página Gerenciar Projetos - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 21:01
- * @version 1.1.0
+ * @date 2026-01-22 11:30
+ * @version 1.3.0
  */
 
 import { useState } from 'react';
@@ -33,7 +33,7 @@ export function Projetos() {
     const clients = getActiveClients();
 
     // Adicionar projeto
-    const handleAdd = () => {
+    const handleAdd = async () => {
         if (!selectedClientId) {
             setAlert({ type: 'error', message: 'Selecione um cliente' });
             return;
@@ -44,9 +44,13 @@ export function Projetos() {
             return;
         }
 
-        addProject(newName.trim(), selectedClientId);
-        setNewName('');
-        setAlert({ type: 'success', message: 'Projeto adicionado com sucesso!' });
+        const result = await addProject(newName.trim(), selectedClientId);
+        if (result.success) {
+            setNewName('');
+            setAlert({ type: 'success', message: 'Projeto adicionado com sucesso!' });
+        } else {
+            setAlert({ type: 'error', message: result.error || 'Erro ao adicionar' });
+        }
     };
 
     // Iniciar edição
@@ -56,27 +60,27 @@ export function Projetos() {
     };
 
     // Salvar edição
-    const saveEdit = () => {
+    const saveEdit = async () => {
         if (!editingProject || !editName.trim()) return;
 
-        updateProject(editingProject.id, editName.trim(), editingProject.ativo);
+        await updateProject(editingProject.id, editName.trim(), editingProject.ativo);
         setEditingProject(null);
         setEditName('');
         setAlert({ type: 'success', message: 'Projeto atualizado!' });
     };
 
     // Toggle ativo
-    const toggleActive = (project: Project) => {
-        updateProject(project.id, project.nome, !project.ativo);
+    const toggleActive = async (project: Project) => {
+        await updateProject(project.id, project.nome, !project.ativo);
     };
 
     // Deletar
-    const handleDelete = (project: Project) => {
-        const success = deleteProject(project.id);
-        if (success) {
+    const handleDelete = async (project: Project) => {
+        const result = await deleteProject(project.id);
+        if (result.success) {
             setAlert({ type: 'success', message: 'Projeto excluído!' });
         } else {
-            setAlert({ type: 'error', message: 'Não é possível excluir: projeto possui produções vinculadas' });
+            setAlert({ type: 'error', message: result.error || 'Não é possível excluir' });
         }
         setDeleteModal(null);
     };

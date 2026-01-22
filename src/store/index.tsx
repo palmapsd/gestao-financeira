@@ -1,177 +1,54 @@
 /* 
- * Context/Store do Sistema Palma.PSD
+ * Context/Store do Sistema Palma.PSD com Supabase
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-21 20:50
- * @version 1.1.0
+ * @date 2026-01-22 11:10
+ * @version 1.3.0
  */
 
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import type {
-    Client, Project, Production, Period, StoreData,
-    ProductionFormData, Status
-} from '../types';
-import {
-    calculatePeriod, calculateTotal, validateProductionForm,
-    generateId, getTodayISO, isToday, logger
-} from '../utils';
-import { APP_VERSION } from '../config';
+import { supabase, logSupabaseError } from '../lib/supabase';
+import type { Client, Project, Production, Period } from '../types/database';
+import type { ProductionFormData } from '../types';
+import { calculatePeriod, calculateTotal, validateProductionForm } from '../utils';
 
-const STORAGE_KEY = 'palma_psd_data';
-
-// Estado inicial
-const initialState: StoreData = {
-    clients: [],
-    projects: [],
-    productions: [],
-    periods: [],
-    version: APP_VERSION
-};
-
-// Tipos de ações
-type Action =
-    | { type: 'LOAD_DATA'; payload: StoreData }
-    | { type: 'ADD_CLIENT'; payload: Client }
-    | { type: 'UPDATE_CLIENT'; payload: Client }
-    | { type: 'DELETE_CLIENT'; payload: string }
-    | { type: 'ADD_PROJECT'; payload: Project }
-    | { type: 'UPDATE_PROJECT'; payload: Project }
-    | { type: 'DELETE_PROJECT'; payload: string }
-    | { type: 'ADD_PRODUCTION'; payload: Production }
-    | { type: 'UPDATE_PRODUCTION'; payload: Production }
-    | { type: 'DELETE_PRODUCTION'; payload: string }
-    | { type: 'ADD_PERIOD'; payload: Period }
-    | { type: 'UPDATE_PERIOD'; payload: Period }
-    | { type: 'CLOSE_PERIOD'; payload: string }
-    | { type: 'RECALCULATE_PERIOD_TOTAL'; payload: string };
-
-// Reducer principal
-function storeReducer(state: StoreData, action: Action): StoreData {
-    switch (action.type) {
-        case 'LOAD_DATA':
-            return { ...action.payload, version: APP_VERSION };
-
-        case 'ADD_CLIENT':
-            return { ...state, clients: [...state.clients, action.payload] };
-
-        case 'UPDATE_CLIENT':
-            return {
-                ...state,
-                clients: state.clients.map(c =>
-                    c.id === action.payload.id ? action.payload : c
-                )
-            };
-
-        case 'DELETE_CLIENT':
-            return {
-                ...state,
-                clients: state.clients.filter(c => c.id !== action.payload)
-            };
-
-        case 'ADD_PROJECT':
-            return { ...state, projects: [...state.projects, action.payload] };
-
-        case 'UPDATE_PROJECT':
-            return {
-                ...state,
-                projects: state.projects.map(p =>
-                    p.id === action.payload.id ? action.payload : p
-                )
-            };
-
-        case 'DELETE_PROJECT':
-            return {
-                ...state,
-                projects: state.projects.filter(p => p.id !== action.payload)
-            };
-
-        case 'ADD_PRODUCTION':
-            return { ...state, productions: [...state.productions, action.payload] };
-
-        case 'UPDATE_PRODUCTION':
-            return {
-                ...state,
-                productions: state.productions.map(p =>
-                    p.id === action.payload.id ? action.payload : p
-                )
-            };
-
-        case 'DELETE_PRODUCTION':
-            return {
-                ...state,
-                productions: state.productions.filter(p => p.id !== action.payload)
-            };
-
-        case 'ADD_PERIOD':
-            return { ...state, periods: [...state.periods, action.payload] };
-
-        case 'UPDATE_PERIOD':
-            return {
-                ...state,
-                periods: state.periods.map(p =>
-                    p.id === action.payload.id ? action.payload : p
-                )
-            };
-
-        case 'CLOSE_PERIOD': {
-            const periodId = action.payload;
-            return {
-                ...state,
-                periods: state.periods.map(p =>
-                    p.id === periodId ? { ...p, status: 'Fechado' as Status, updated_at: new Date().toISOString() } : p
-                ),
-                productions: state.productions.map(prod =>
-                    prod.periodo_id === periodId ? { ...prod, status: 'Fechado' as Status, updated_at: new Date().toISOString() } : prod
-                )
-            };
-        }
-
-        case 'RECALCULATE_PERIOD_TOTAL': {
-            const periodId = action.payload;
-            const total = state.productions
-                .filter(p => p.periodo_id === periodId)
-                .reduce((sum, p) => sum + p.total, 0);
-            return {
-                ...state,
-                periods: state.periods.map(p =>
-                    p.id === periodId ? { ...p, total_periodo: total, updated_at: new Date().toISOString() } : p
-                )
-            };
-        }
-
-        default:
-            return state;
-    }
+interface StoreData {
+    clients: Client[];
+    projects: Project[];
+    productions: Production[];
+    periods: Period[];
+    loading: boolean;
+    error: string | null;
 }
 
-// Interface do contexto
 interface StoreContextType {
     state: StoreData;
+    refreshData: () => Promise<void>;
 
     // Clientes
-    addClient: (nome: string) => Client;
-    updateClient: (id: string, nome: string, ativo: boolean) => void;
-    deleteClient: (id: string) => boolean;
+    addClient: (nome: string) => Promise<{ success: boolean; error?: string; client?: Client }>;
+    updateClient: (id: string, nome: string, ativo: boolean) => Promise<{ success: boolean; error?: string }>;
+    deleteClient: (id: string) => Promise<{ success: boolean; error?: string }>;
     getActiveClients: () => Client[];
 
     // Projetos
-    addProject: (nome: string, clienteId: string) => Project;
-    updateProject: (id: string, nome: string, ativo: boolean) => void;
-    deleteProject: (id: string) => boolean;
+    addProject: (nome: string, clienteId: string) => Promise<{ success: boolean; error?: string; project?: Project }>;
+    updateProject: (id: string, nome: string, ativo: boolean) => Promise<{ success: boolean; error?: string }>;
+    deleteProject: (id: string) => Promise<{ success: boolean; error?: string }>;
     getProjectsByClient: (clienteId: string) => Project[];
 
     // Produções
-    addProduction: (formData: ProductionFormData) => { success: boolean; errors: string[]; production?: Production };
-    updateProduction: (id: string, formData: ProductionFormData) => { success: boolean; errors: string[] };
-    deleteProduction: (id: string) => { success: boolean; error?: string };
-    duplicateProduction: (id: string) => { success: boolean; production?: Production; error?: string };
+    addProduction: (formData: ProductionFormData) => Promise<{ success: boolean; errors: string[]; production?: Production }>;
+    updateProduction: (id: string, formData: ProductionFormData) => Promise<{ success: boolean; errors: string[] }>;
+    deleteProduction: (id: string) => Promise<{ success: boolean; error?: string }>;
+    duplicateProduction: (id: string) => Promise<{ success: boolean; production?: Production; error?: string }>;
     canEditProduction: (production: Production) => boolean;
 
     // Períodos
     getOpenPeriodsByClient: (clienteId: string) => Period[];
     getAllPeriodsByClient: (clienteId: string) => Period[];
     getProductionsByPeriod: (periodId: string) => Production[];
-    closePeriod: (periodId: string) => { success: boolean; error?: string };
+    closePeriod: (periodId: string) => Promise<{ success: boolean; error?: string }>;
 
     // Utilitários
     getClientById: (id: string) => Client | undefined;
@@ -179,117 +56,194 @@ interface StoreContextType {
     getPeriodById: (id: string) => Period | undefined;
 }
 
-// Criação do contexto
 const StoreContext = createContext<StoreContextType | null>(null);
 
-// Provider
 export function StoreProvider({ children }: { children: ReactNode }) {
-    const [state, dispatch] = useReducer(storeReducer, initialState);
+    const [state, setState] = useState<StoreData>({
+        clients: [],
+        projects: [],
+        productions: [],
+        periods: [],
+        loading: true,
+        error: null
+    });
 
-    // Carrega dados do localStorage na inicialização
-    useEffect(() => {
+    // Carrega todos os dados
+    const refreshData = useCallback(async () => {
+        setState(prev => ({ ...prev, loading: true, error: null }));
+
         try {
-            const savedData = localStorage.getItem(STORAGE_KEY);
-            if (savedData) {
-                const parsed = JSON.parse(savedData) as StoreData;
-                logger.info('Dados carregados do localStorage', {
-                    clients: parsed.clients.length,
-                    productions: parsed.productions.length
-                });
-                dispatch({ type: 'LOAD_DATA', payload: parsed });
-            }
+            const [clientsRes, projectsRes, periodsRes, productionsRes] = await Promise.all([
+                supabase.from('clients').select('*').order('nome'),
+                supabase.from('projects').select('*').order('nome'),
+                supabase.from('periods').select('*').order('data_inicio', { ascending: false }),
+                supabase.from('productions').select('*').order('data', { ascending: false })
+            ]);
+
+            if (clientsRes.error) throw clientsRes.error;
+            if (projectsRes.error) throw projectsRes.error;
+            if (periodsRes.error) throw periodsRes.error;
+            if (productionsRes.error) throw productionsRes.error;
+
+            setState({
+                clients: clientsRes.data || [],
+                projects: projectsRes.data || [],
+                periods: periodsRes.data || [],
+                productions: productionsRes.data || [],
+                loading: false,
+                error: null
+            });
         } catch (error) {
-            logger.error('Erro ao carregar dados do localStorage', error);
+            logSupabaseError('refreshData', error);
+            setState(prev => ({
+                ...prev,
+                loading: false,
+                error: 'Erro ao carregar dados'
+            }));
         }
     }, []);
 
-    // Salva dados no localStorage sempre que mudar
+    // Carrega dados na inicialização
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            logger.info('Dados salvos no localStorage');
-        } catch (error) {
-            logger.error('Erro ao salvar dados no localStorage', error);
-        }
-    }, [state]);
+        refreshData();
+    }, [refreshData]);
 
     // === CLIENTES ===
-    const addClient = (nome: string): Client => {
-        const now = new Date().toISOString();
-        const client: Client = {
-            id: generateId(),
-            nome: nome.trim(),
-            ativo: true,
-            created_at: now,
-            updated_at: now
-        };
-        dispatch({ type: 'ADD_CLIENT', payload: client });
-        logger.info('Cliente adicionado', client);
-        return client;
-    };
+    const addClient = async (nome: string): Promise<{ success: boolean; error?: string; client?: Client }> => {
+        try {
+            const { data, error } = await supabase
+                .from('clients')
+                .insert({ nome: nome.trim() })
+                .select()
+                .single();
 
-    const updateClient = (id: string, nome: string, ativo: boolean) => {
-        const existing = state.clients.find(c => c.id === id);
-        if (existing) {
-            const updated: Client = {
-                ...existing,
-                nome: nome.trim(),
-                ativo,
-                updated_at: new Date().toISOString()
-            };
-            dispatch({ type: 'UPDATE_CLIENT', payload: updated });
+            if (error) {
+                logSupabaseError('addClient', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({ ...prev, clients: [...prev.clients, data] }));
+            return { success: true, client: data };
+        } catch (error) {
+            logSupabaseError('addClient catch', error);
+            return { success: false, error: 'Erro ao criar cliente' };
         }
     };
 
-    const deleteClient = (id: string): boolean => {
+    const updateClient = async (id: string, nome: string, ativo: boolean): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const { error } = await supabase
+                .from('clients')
+                .update({ nome: nome.trim(), ativo, updated_at: new Date().toISOString() })
+                .eq('id', id);
+
+            if (error) {
+                logSupabaseError('updateClient', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({
+                ...prev,
+                clients: prev.clients.map(c => c.id === id ? { ...c, nome: nome.trim(), ativo } : c)
+            }));
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('updateClient catch', error);
+            return { success: false, error: 'Erro ao atualizar cliente' };
+        }
+    };
+
+    const deleteClient = async (id: string): Promise<{ success: boolean; error?: string }> => {
         const hasProductions = state.productions.some(p => p.cliente_id === id);
         if (hasProductions) {
-            logger.warn('Tentativa de excluir cliente com produções', { id });
-            return false;
+            return { success: false, error: 'Cliente tem produções associadas' };
         }
-        dispatch({ type: 'DELETE_CLIENT', payload: id });
-        return true;
+
+        try {
+            const { error } = await supabase.from('clients').delete().eq('id', id);
+            if (error) {
+                logSupabaseError('deleteClient', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({
+                ...prev,
+                clients: prev.clients.filter(c => c.id !== id),
+                projects: prev.projects.filter(p => p.cliente_id !== id)
+            }));
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('deleteClient catch', error);
+            return { success: false, error: 'Erro ao excluir cliente' };
+        }
     };
 
-    const getActiveClients = (): Client[] => {
-        return state.clients.filter(c => c.ativo);
-    };
+    const getActiveClients = (): Client[] => state.clients.filter(c => c.ativo);
 
     // === PROJETOS ===
-    const addProject = (nome: string, clienteId: string): Project => {
-        const now = new Date().toISOString();
-        const project: Project = {
-            id: generateId(),
-            nome: nome.trim(),
-            cliente_id: clienteId,
-            ativo: true,
-            created_at: now,
-            updated_at: now
-        };
-        dispatch({ type: 'ADD_PROJECT', payload: project });
-        return project;
-    };
+    const addProject = async (nome: string, clienteId: string): Promise<{ success: boolean; error?: string; project?: Project }> => {
+        try {
+            const { data, error } = await supabase
+                .from('projects')
+                .insert({ nome: nome.trim(), cliente_id: clienteId })
+                .select()
+                .single();
 
-    const updateProject = (id: string, nome: string, ativo: boolean) => {
-        const existing = state.projects.find(p => p.id === id);
-        if (existing) {
-            const updated: Project = {
-                ...existing,
-                nome: nome.trim(),
-                ativo,
-                updated_at: new Date().toISOString()
-            };
-            dispatch({ type: 'UPDATE_PROJECT', payload: updated });
+            if (error) {
+                logSupabaseError('addProject', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({ ...prev, projects: [...prev.projects, data] }));
+            return { success: true, project: data };
+        } catch (error) {
+            logSupabaseError('addProject catch', error);
+            return { success: false, error: 'Erro ao criar projeto' };
         }
     };
 
-    const deleteProject = (id: string): boolean => {
+    const updateProject = async (id: string, nome: string, ativo: boolean): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const { error } = await supabase
+                .from('projects')
+                .update({ nome: nome.trim(), ativo, updated_at: new Date().toISOString() })
+                .eq('id', id);
+
+            if (error) {
+                logSupabaseError('updateProject', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({
+                ...prev,
+                projects: prev.projects.map(p => p.id === id ? { ...p, nome: nome.trim(), ativo } : p)
+            }));
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('updateProject catch', error);
+            return { success: false, error: 'Erro ao atualizar projeto' };
+        }
+    };
+
+    const deleteProject = async (id: string): Promise<{ success: boolean; error?: string }> => {
         const hasProductions = state.productions.some(p => p.projeto_id === id);
         if (hasProductions) {
-            return false;
+            return { success: false, error: 'Projeto tem produções associadas' };
         }
-        dispatch({ type: 'DELETE_PROJECT', payload: id });
-        return true;
+
+        try {
+            const { error } = await supabase.from('projects').delete().eq('id', id);
+            if (error) {
+                logSupabaseError('deleteProject', error);
+                return { success: false, error: error.message };
+            }
+
+            setState(prev => ({ ...prev, projects: prev.projects.filter(p => p.id !== id) }));
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('deleteProject catch', error);
+            return { success: false, error: 'Erro ao excluir projeto' };
+        }
     };
 
     const getProjectsByClient = (clienteId: string): Project[] => {
@@ -297,109 +251,117 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
 
     // === PRODUÇÕES ===
-
-    // Encontra ou cria período baseado na data
-    const findOrCreatePeriod = (clienteId: string, data: string): Period => {
+    const findOrCreatePeriod = async (clienteId: string, data: string): Promise<Period | null> => {
         const periodCalc = calculatePeriod(data);
 
-        // Busca período existente
+        // Busca período existente localmente
         let period = state.periods.find(p =>
             p.cliente_id === clienteId &&
             p.data_inicio === periodCalc.data_inicio &&
             p.data_fim === periodCalc.data_fim
         );
 
-        if (!period) {
-            // Cria novo período
-            const now = new Date().toISOString();
-            period = {
-                id: generateId(),
-                cliente_id: clienteId,
-                data_inicio: periodCalc.data_inicio,
-                data_fim: periodCalc.data_fim,
-                nome_periodo: periodCalc.nome_periodo,
-                status: 'Aberto',
-                total_periodo: 0,
-                created_at: now,
-                updated_at: now
-            };
-            dispatch({ type: 'ADD_PERIOD', payload: period });
-            logger.info('Período criado automaticamente', period);
-        }
+        if (period) return period;
 
-        return period;
+        // Cria novo período
+        try {
+            const { data: newPeriod, error } = await supabase
+                .from('periods')
+                .insert({
+                    cliente_id: clienteId,
+                    data_inicio: periodCalc.data_inicio,
+                    data_fim: periodCalc.data_fim,
+                    nome_periodo: periodCalc.nome_periodo,
+                    status: 'Aberto',
+                    total_periodo: 0
+                })
+                .select()
+                .single();
+
+            if (error) {
+                logSupabaseError('findOrCreatePeriod', error);
+                return null;
+            }
+
+            setState(prev => ({ ...prev, periods: [...prev.periods, newPeriod] }));
+            return newPeriod;
+        } catch (error) {
+            logSupabaseError('findOrCreatePeriod catch', error);
+            return null;
+        }
     };
 
-    const addProduction = (formData: ProductionFormData): { success: boolean; errors: string[]; production?: Production } => {
-        // Validação
+    const addProduction = async (formData: ProductionFormData): Promise<{ success: boolean; errors: string[]; production?: Production }> => {
         const validation = validateProductionForm(formData);
         if (!validation.valid) {
             return { success: false, errors: validation.errors };
         }
 
-        // Encontra ou cria período
-        const period = findOrCreatePeriod(formData.cliente_id, formData.data);
-
-        // Verifica se período está fechado
-        if (period.status === 'Fechado') {
-            return {
-                success: false,
-                errors: ['Não é possível adicionar produções a um período fechado']
-            };
+        const period = await findOrCreatePeriod(formData.cliente_id, formData.data);
+        if (!period) {
+            return { success: false, errors: ['Erro ao criar período'] };
         }
 
-        const now = new Date().toISOString();
+        if (period.status === 'Fechado') {
+            return { success: false, errors: ['Período está fechado'] };
+        }
+
         const quantidade = Number(formData.quantidade);
         const valorUnitario = Number(formData.valor_unitario);
 
-        const production: Production = {
-            id: generateId(),
-            data: formData.data,
-            cliente_id: formData.cliente_id,
-            projeto_id: formData.projeto_id || undefined,
-            tipo: formData.tipo as Production['tipo'],
-            nome_producao: formData.nome_producao.trim(),
-            quantidade,
-            valor_unitario: valorUnitario,
-            total: calculateTotal(quantidade, valorUnitario),
-            periodo_id: period.id,
-            status: 'Aberto',
-            observacoes: formData.observacoes?.trim() || undefined,
-            created_at: now,
-            updated_at: now
-        };
+        try {
+            const { data, error } = await supabase
+                .from('productions')
+                .insert({
+                    data: formData.data,
+                    cliente_id: formData.cliente_id,
+                    projeto_id: formData.projeto_id || null,
+                    tipo: formData.tipo,
+                    nome_producao: formData.nome_producao.trim(),
+                    quantidade,
+                    valor_unitario: valorUnitario,
+                    total: calculateTotal(quantidade, valorUnitario),
+                    periodo_id: period.id,
+                    status: 'Aberto',
+                    observacoes: formData.observacoes?.trim() || null
+                })
+                .select()
+                .single();
 
-        dispatch({ type: 'ADD_PRODUCTION', payload: production });
+            if (error) {
+                logSupabaseError('addProduction', error);
+                return { success: false, errors: [error.message] };
+            }
 
-        // Recalcula total do período
-        setTimeout(() => {
-            dispatch({ type: 'RECALCULATE_PERIOD_TOTAL', payload: period.id });
-        }, 0);
+            setState(prev => ({ ...prev, productions: [data, ...prev.productions] }));
 
-        logger.info('Produção adicionada', production);
-        return { success: true, errors: [], production };
+            // Refresh para atualizar totais dos períodos (trigger no banco faz isso)
+            setTimeout(() => refreshData(), 500);
+
+            return { success: true, errors: [], production: data };
+        } catch (error) {
+            logSupabaseError('addProduction catch', error);
+            return { success: false, errors: ['Erro ao criar produção'] };
+        }
     };
 
     const canEditProduction = (production: Production): boolean => {
-        // Regra 4: só pode editar no mesmo dia da criação
         if (production.status === 'Fechado') return false;
-
         const createdDate = production.created_at.split('T')[0];
-        return isToday(createdDate);
+        const today = new Date().toISOString().split('T')[0];
+        return createdDate === today;
     };
 
-    const updateProduction = (id: string, formData: ProductionFormData): { success: boolean; errors: string[] } => {
+    const updateProduction = async (id: string, formData: ProductionFormData): Promise<{ success: boolean; errors: string[] }> => {
         const existing = state.productions.find(p => p.id === id);
         if (!existing) {
             return { success: false, errors: ['Produção não encontrada'] };
         }
 
-        // Verifica se pode editar
         if (!canEditProduction(existing)) {
-            return { success: false, errors: ['Edição bloqueada. Produções só podem ser editadas no mesmo dia da criação.'] };
+            return { success: false, errors: ['Edição bloqueada. Só pode editar no mesmo dia.'] };
         }
 
-        // Validação
         const validation = validateProductionForm(formData);
         if (!validation.valid) {
             return { success: false, errors: validation.errors };
@@ -408,62 +370,82 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const quantidade = Number(formData.quantidade);
         const valorUnitario = Number(formData.valor_unitario);
 
-        const updated: Production = {
-            ...existing,
-            data: formData.data,
-            cliente_id: formData.cliente_id,
-            projeto_id: formData.projeto_id || undefined,
-            tipo: formData.tipo as Production['tipo'],
-            nome_producao: formData.nome_producao.trim(),
-            quantidade,
-            valor_unitario: valorUnitario,
-            total: calculateTotal(quantidade, valorUnitario),
-            observacoes: formData.observacoes?.trim() || undefined,
-            updated_at: new Date().toISOString()
-        };
+        try {
+            const { error } = await supabase
+                .from('productions')
+                .update({
+                    data: formData.data,
+                    cliente_id: formData.cliente_id,
+                    projeto_id: formData.projeto_id || null,
+                    tipo: formData.tipo,
+                    nome_producao: formData.nome_producao.trim(),
+                    quantidade,
+                    valor_unitario: valorUnitario,
+                    total: calculateTotal(quantidade, valorUnitario),
+                    observacoes: formData.observacoes?.trim() || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id);
 
-        dispatch({ type: 'UPDATE_PRODUCTION', payload: updated });
-        dispatch({ type: 'RECALCULATE_PERIOD_TOTAL', payload: existing.periodo_id });
+            if (error) {
+                logSupabaseError('updateProduction', error);
+                return { success: false, errors: [error.message] };
+            }
 
-        return { success: true, errors: [] };
+            await refreshData();
+            return { success: true, errors: [] };
+        } catch (error) {
+            logSupabaseError('updateProduction catch', error);
+            return { success: false, errors: ['Erro ao atualizar produção'] };
+        }
     };
 
-    const deleteProduction = (id: string): { success: boolean; error?: string } => {
+    const deleteProduction = async (id: string): Promise<{ success: boolean; error?: string }> => {
         const existing = state.productions.find(p => p.id === id);
         if (!existing) {
             return { success: false, error: 'Produção não encontrada' };
         }
 
         if (existing.status === 'Fechado') {
-            return { success: false, error: 'Não é possível excluir produções de um período fechado' };
+            return { success: false, error: 'Não pode excluir produção de período fechado' };
         }
 
         if (!canEditProduction(existing)) {
-            return { success: false, error: 'Exclusão bloqueada. Produções só podem ser excluídas no mesmo dia da criação.' };
+            return { success: false, error: 'Exclusão bloqueada. Só pode excluir no mesmo dia.' };
         }
 
-        const periodId = existing.periodo_id;
-        dispatch({ type: 'DELETE_PRODUCTION', payload: id });
+        try {
+            const { error } = await supabase.from('productions').delete().eq('id', id);
+            if (error) {
+                logSupabaseError('deleteProduction', error);
+                return { success: false, error: error.message };
+            }
 
-        setTimeout(() => {
-            dispatch({ type: 'RECALCULATE_PERIOD_TOTAL', payload: periodId });
-        }, 0);
+            setState(prev => ({
+                ...prev,
+                productions: prev.productions.filter(p => p.id !== id)
+            }));
 
-        return { success: true };
+            setTimeout(() => refreshData(), 500);
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('deleteProduction catch', error);
+            return { success: false, error: 'Erro ao excluir produção' };
+        }
     };
 
-    const duplicateProduction = (id: string): { success: boolean; production?: Production; error?: string } => {
+    const duplicateProduction = async (id: string): Promise<{ success: boolean; production?: Production; error?: string }> => {
         const existing = state.productions.find(p => p.id === id);
         if (!existing) {
             return { success: false, error: 'Produção não encontrada' };
         }
 
         if (existing.status === 'Fechado') {
-            return { success: false, error: 'Não é possível duplicar produções de um período fechado' };
+            return { success: false, error: 'Não pode duplicar produção de período fechado' };
         }
 
-        const today = getTodayISO();
-        const result = addProduction({
+        const today = new Date().toISOString().split('T')[0];
+        const result = await addProduction({
             data: today,
             cliente_id: existing.cliente_id,
             projeto_id: existing.projeto_id || '',
@@ -477,7 +459,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (result.success) {
             return { success: true, production: result.production };
         }
-
         return { success: false, error: result.errors.join(', ') };
     };
 
@@ -496,7 +477,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return state.productions.filter(p => p.periodo_id === periodId);
     };
 
-    const closePeriod = (periodId: string): { success: boolean; error?: string } => {
+    const closePeriod = async (periodId: string): Promise<{ success: boolean; error?: string }> => {
         const period = state.periods.find(p => p.id === periodId);
         if (!period) {
             return { success: false, error: 'Período não encontrado' };
@@ -506,10 +487,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             return { success: false, error: 'Período já está fechado' };
         }
 
-        dispatch({ type: 'CLOSE_PERIOD', payload: periodId });
-        logger.info('Período fechado', { periodId });
+        try {
+            // Atualiza período
+            const { error: periodError } = await supabase
+                .from('periods')
+                .update({ status: 'Fechado', updated_at: new Date().toISOString() })
+                .eq('id', periodId);
 
-        return { success: true };
+            if (periodError) {
+                logSupabaseError('closePeriod period', periodError);
+                return { success: false, error: periodError.message };
+            }
+
+            // Atualiza produções do período
+            const { error: prodError } = await supabase
+                .from('productions')
+                .update({ status: 'Fechado', updated_at: new Date().toISOString() })
+                .eq('periodo_id', periodId);
+
+            if (prodError) {
+                logSupabaseError('closePeriod productions', prodError);
+            }
+
+            await refreshData();
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('closePeriod catch', error);
+            return { success: false, error: 'Erro ao fechar período' };
+        }
     };
 
     // === UTILITÁRIOS ===
@@ -517,38 +522,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const getProjectById = (id: string) => state.projects.find(p => p.id === id);
     const getPeriodById = (id: string) => state.periods.find(p => p.id === id);
 
-    const contextValue: StoreContextType = {
-        state,
-        addClient,
-        updateClient,
-        deleteClient,
-        getActiveClients,
-        addProject,
-        updateProject,
-        deleteProject,
-        getProjectsByClient,
-        addProduction,
-        updateProduction,
-        deleteProduction,
-        duplicateProduction,
-        canEditProduction,
-        getOpenPeriodsByClient,
-        getAllPeriodsByClient,
-        getProductionsByPeriod,
-        closePeriod,
-        getClientById,
-        getProjectById,
-        getPeriodById
-    };
-
     return (
-        <StoreContext.Provider value={contextValue}>
+        <StoreContext.Provider value={{
+            state,
+            refreshData,
+            addClient,
+            updateClient,
+            deleteClient,
+            getActiveClients,
+            addProject,
+            updateProject,
+            deleteProject,
+            getProjectsByClient,
+            addProduction,
+            updateProduction,
+            deleteProduction,
+            duplicateProduction,
+            canEditProduction,
+            getOpenPeriodsByClient,
+            getAllPeriodsByClient,
+            getProductionsByPeriod,
+            closePeriod,
+            getClientById,
+            getProjectById,
+            getPeriodById
+        }}>
             {children}
         </StoreContext.Provider>
     );
 }
 
-// Hook para usar o store
 export function useStore(): StoreContextType {
     const context = useContext(StoreContext);
     if (!context) {
