@@ -6,7 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Download, Lock, AlertTriangle, FileSpreadsheet, FileText } from 'lucide-react';
+import { Download, Lock, AlertTriangle, FileSpreadsheet, FileText, Unlock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { useStore } from '../store';
@@ -31,6 +31,7 @@ export function Fechamento() {
         getAllPeriodsByClient,
         getProductionsByPeriod,
         closePeriod,
+        reopenPeriod,
         getClientById
     } = useStore();
 
@@ -124,6 +125,24 @@ export function Fechamento() {
         }
 
         setCloseModal(false);
+        setLoading(false);
+    };
+
+    // Reabrir período
+    const handleReopenPeriod = async () => {
+        if (!selectedPeriodId) return;
+
+        setLoading(true);
+        const result = await reopenPeriod(selectedPeriodId);
+
+        if (result.success) {
+            setAlert({ type: 'success', message: 'Período reaberto com sucesso! Editção habilitada novamente.' });
+            setSelectedPeriodId('');
+        } else {
+            setAlert({ type: 'error', message: result.error || 'Erro ao reabrir período' });
+        }
+
+        setCloseModal(false); // Reuso do modal state ou crio outro se precisar, mas vou fazer direto no onClick do button por enquanto ou reusar modal com contexto diferente
         setLoading(false);
     };
 
@@ -301,6 +320,18 @@ export function Fechamento() {
                                     disabled={periodProductions.length === 0}
                                 >
                                     Fechar Período
+                                </Button>
+                            )}
+
+                            {selectedPeriod?.status === 'Fechado' && (
+                                <Button
+                                    variant="secondary"
+                                    className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10"
+                                    icon={<Unlock className="w-4 h-4" />}
+                                    onClick={handleReopenPeriod}
+                                    loading={loading}
+                                >
+                                    Reabrir Período
                                 </Button>
                             )}
                         </div>

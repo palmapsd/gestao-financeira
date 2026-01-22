@@ -58,6 +58,7 @@ interface StoreContextType {
     getAllPeriodsByClient: (clienteId: string) => Period[];
     getProductionsByPeriod: (periodId: string) => Production[];
     closePeriod: (periodId: string) => Promise<{ success: boolean; error?: string }>;
+    reopenPeriod: (periodId: string) => Promise<{ success: boolean; error?: string }>;
 
     // Utilitários
     getClientById: (id: string) => Client | undefined;
@@ -531,6 +532,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const reopenPeriod = async (periodId: string): Promise<{ success: boolean; error?: string }> => {
+        const period = state.periods.find(p => p.id === periodId);
+        if (!period) {
+            return { success: false, error: 'Período não encontrado' };
+        }
+
+        if (period.status === 'Aberto') {
+            return { success: false, error: 'Período já está aberto' };
+        }
+
+        try {
+            // Atualiza período
+            const { error: periodError } = await supabase
+                .from('periods')
+                .update({ status: 'Aberto', updated_at: new Date().toISOString() })
+                .eq('id', periodId);
+
+            if (periodError) {
+                logSupabaseError('reopenPeriod period', periodError);
+                return { success: false, error: periodError.message };
+            }
+
+            // Atualiza produções do período
+            const { error: prodError } = await supabase
+                .from('productions')
+                .update({ status: 'Aberto', updated_at: new Date().toISOString() })
+                .eq('periodo_id', periodId);
+
+            if (prodError) {
+                logSupabaseError('reopenPeriod productions', prodError);
+            }
+
+            await refreshData();
+            return { success: true };
+        } catch (error) {
+            logSupabaseError('reopenPeriod catch', error);
+            return { success: false, error: 'Erro ao reabrir período' };
+        }
+    };
+
     // === UTILITÁRIOS ===
     const getClientById = (id: string) => state.clients.find(c => c.id === id);
     const getProjectById = (id: string) => state.projects.find(p => p.id === id);
@@ -558,6 +599,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             getAllPeriodsByClient,
             getProductionsByPeriod,
             closePeriod,
+            reopenPeriod,
             getClientById,
             getProjectById,
             getPeriodById,
