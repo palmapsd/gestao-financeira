@@ -73,9 +73,11 @@ export function Login() {
             <div className="relative w-full max-w-md">
                 {/* Logo e título */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 mb-4 shadow-lg shadow-blue-500/20">
-                        <span className="text-2xl font-bold text-white">P</span>
-                    </div>
+                    <img
+                        src="https://i.postimg.cc/05SJDj1m/palmapsd-icon.jpg"
+                        alt="Palma.PSD"
+                        className="w-24 h-24 rounded-2xl shadow-lg shadow-blue-500/20 mb-4 object-cover"
+                    />
                     <h1 className="text-3xl font-bold text-white mb-2">Palma.PSD</h1>
                     <p className="text-slate-400">Sistema de Controle de Produção</p>
                 </div>
