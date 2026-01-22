@@ -13,6 +13,7 @@ import { useStore } from '../store';
 import type { Period } from '../types';
 import { formatCurrency, formatDate, groupByType, PRODUCTION_TYPES } from '../utils';
 import { exportPeriodToPDF } from '../utils/pdfExport';
+import { useAuth } from '../context/AuthContext';
 import {
     PageHeader,
     Card,
@@ -40,6 +41,8 @@ export function Fechamento() {
     const [closeModal, setCloseModal] = useState(false);
     const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const [loading, setLoading] = useState(false);
+
+    const { isAdmin } = useAuth();
 
     const clients = getActiveClients();
     const allPeriods = selectedClientId ? getAllPeriodsByClient(selectedClientId) : [];
@@ -312,7 +315,7 @@ export function Fechamento() {
                                 Exportar PDF
                             </Button>
 
-                            {selectedPeriod?.status === 'Aberto' && (
+                            {isAdmin && selectedPeriod?.status === 'Aberto' && (
                                 <Button
                                     variant="danger"
                                     icon={<Lock className="w-4 h-4" />}
@@ -323,7 +326,7 @@ export function Fechamento() {
                                 </Button>
                             )}
 
-                            {selectedPeriod?.status === 'Fechado' && (
+                            {isAdmin && selectedPeriod?.status === 'Fechado' && (
                                 <Button
                                     variant="secondary"
                                     className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10"
