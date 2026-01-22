@@ -352,6 +352,12 @@ export function Fechamento() {
                                             </tr>
                                         </tfoot>
                                     </table>
+
+                                    {periodProductions.length === 0 && (
+                                        <div className="p-8 text-center text-slate-500">
+                                            <p>Nenhuma produção lançada neste período.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </Card>
                         </>

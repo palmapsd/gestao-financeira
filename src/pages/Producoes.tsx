@@ -1,8 +1,8 @@
 /* 
  * Página Lista de Produções (Tela 2) - Sistema Palma.PSD
  * @author Ricieri de Moraes (https://starmannweb.com.br)
- * @date 2026-01-22 11:30
- * @version 1.4.0
+ * @date 2026-01-22 17:00
+ * @version 1.4.1
  */
 
 import { useState, useMemo } from 'react';
@@ -200,7 +200,11 @@ export function Producoes() {
                     <EmptyState
                         icon={<FileText className="w-16 h-16" />}
                         title="Nenhuma produção encontrada"
-                        description="Ainda não há produções registradas ou os filtros não retornaram resultados."
+                        description={
+                            filteredProductions.length === 0 && !filters.cliente_id && !filters.status
+                                ? "Nenhuma produção encontrada no sistema."
+                                : "Nenhum resultado para os filtros selecionados."
+                        }
                         action={
                             isAdmin ? (
                                 <Link to="/nova-producao">
